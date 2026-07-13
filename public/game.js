@@ -113,9 +113,9 @@ let dying = false;
 let cameraBaseY = EYE_HEIGHT;
 let bobPhase = 0;
 let previousEntityDistance = Infinity;
-let stalkRelocationTimer = 6.5 + randomSeedDelay();
-let roarTimer = 3.5 + randomSeedDelay();
-let phraseTimer = 11 + randomSeedDelay() * 1.8;
+let stalkRelocationTimer = 3.8 + randomSeedDelay() * 0.55;
+let roarTimer = 2.1 + randomSeedDelay() * 0.5;
+let phraseTimer = 8.8 + randomSeedDelay() * 1.2;
 let entityVoiceActive = false;
 
 function randomSeedDelay() {
@@ -716,214 +716,197 @@ function buildExit() {
 
 function makeEntity() {
   const group = new THREE.Group();
-  const skin = new THREE.MeshStandardMaterial({
-    color: 0x171416,
-    roughness: 0.92,
-    metalness: 0.01,
+  const silhouetteMaterial = new THREE.MeshStandardMaterial({
+    color: 0x050607,
+    emissive: 0x000000,
+    roughness: 0.95,
+    metalness: 0.02,
   });
-  const stretchedSkin = new THREE.MeshStandardMaterial({
-    color: 0x2b1419,
-    roughness: 1,
-  });
-  const boneMaterial = new THREE.MeshStandardMaterial({
-    color: 0xe8dfc8,
-    roughness: 0.72,
-    emissive: 0x25190f,
+  const faceMaterial = new THREE.MeshStandardMaterial({
+    color: 0x8a735f,
+    roughness: 0.88,
+    emissive: 0x120904,
     emissiveIntensity: 0.18,
   });
-  const clawMaterial = new THREE.MeshStandardMaterial({
-    color: 0x090909,
-    roughness: 0.48,
-    metalness: 0.18,
-  });
-  const eyeMaterial = new THREE.MeshStandardMaterial({
-    color: 0x000000,
-    roughness: 0.18,
-    metalness: 0.08,
-  });
-  const pupilMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    emissive: 0xffffff,
-    emissiveIntensity: 4.8,
-    roughness: 0.2,
-  });
-  const mouthMaterial = new THREE.MeshStandardMaterial({
-    color: 0x020000,
-    roughness: 1,
-  });
+  const boneMaterial = new THREE.MeshStandardMaterial({ color: 0xd7ccc0, roughness: 0.5, metalness: 0.02 });
+  const eyeSocketMaterial = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 1 });
+  const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xf2f2f2, emissiveIntensity: 1.25 });
+  const clawMaterial = new THREE.MeshStandardMaterial({ color: 0x090909, roughness: 0.55, metalness: 0.05 });
+  const mouthMaterial = new THREE.MeshStandardMaterial({ color: 0x090203, roughness: 1 });
 
-  // A low, elongated torso makes Verity move like a human body forced onto all fours.
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.72, 2.55, 7, 10), skin);
-  torso.rotation.x = Math.PI / 2;
-  torso.scale.set(1.05, 1.28, 0.82);
-  torso.position.set(0, 2.4, 0.15);
+  group.position.y = 0.04;
+
+  const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.72, 0.7), silhouetteMaterial);
+  pelvis.position.set(0, 3.05, 0.22);
+  pelvis.rotation.z = -0.08;
+  group.add(pelvis);
+
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.46, 3.1, 6, 10), silhouetteMaterial);
+  torso.scale.set(0.9, 1.22, 0.62);
+  torso.position.set(0, 5.05, -0.12);
+  torso.rotation.z = -0.26;
+  torso.rotation.x = 0.08;
   group.add(torso);
 
-  const shoulders = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.72, 1.15), stretchedSkin);
-  shoulders.position.set(0, 2.55, -1.05);
-  shoulders.rotation.x = -0.08;
-  group.add(shoulders);
+  const shoulderArch = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.42, 0.5), silhouetteMaterial);
+  shoulderArch.position.set(0.12, 6.18, -0.18);
+  shoulderArch.rotation.z = -0.18;
+  group.add(shoulderArch);
 
-  const hips = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.65, 1.05), skin);
-  hips.position.set(0, 2.3, 1.48);
-  hips.rotation.x = 0.12;
-  group.add(hips);
-
-  // Visible ribs and a broken-looking spine silhouette.
-  const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.16, 3.45, 6), boneMaterial);
-  spine.rotation.x = Math.PI / 2;
-  spine.position.set(0, 2.82, 0.2);
-  group.add(spine);
-  for (let i = 0; i < 7; i += 1) {
-    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.62 - i * 0.025, 0.055, 5, 14, Math.PI * 1.15), boneMaterial);
-    rib.rotation.set(Math.PI / 2, 0, Math.PI * 0.43);
-    rib.position.set(0, 2.55 + Math.sin(i) * 0.025, -0.88 + i * 0.31);
-    rib.scale.y = 0.55;
-    group.add(rib);
-  }
-
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.42, 1.45, 8), skin);
-  neck.rotation.x = Math.PI / 2.65;
-  neck.position.set(0, 2.72, -2.08);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.28, 2.8, 8), silhouetteMaterial);
+  neck.position.set(0.36, 7.22, 0.08);
+  neck.rotation.z = -1.05;
+  neck.rotation.x = 0.14;
   group.add(neck);
 
   const headPivot = new THREE.Group();
-  headPivot.position.set(0, 2.85, -2.72);
+  headPivot.position.set(1.48, 8.02, 0.1);
   group.add(headPivot);
 
-  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.78, 16, 12), skin);
-  skull.scale.set(0.86, 1.02, 1.42);
-  skull.rotation.x = -0.08;
-  headPivot.add(skull);
+  const headBack = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1.65, 4, 9), silhouetteMaterial);
+  headBack.rotation.z = 0.08;
+  headBack.rotation.x = 0.14;
+  headBack.scale.set(0.76, 1.08, 0.72);
+  headPivot.add(headBack);
 
-  const facialPlate = new THREE.Mesh(new THREE.SphereGeometry(0.64, 14, 10), stretchedSkin);
-  facialPlate.scale.set(0.96, 0.7, 1.15);
-  facialPlate.position.set(0, -0.04, -0.56);
-  headPivot.add(facialPlate);
+  const face = new THREE.Mesh(new THREE.SphereGeometry(0.48, 16, 12), faceMaterial);
+  face.position.set(0.02, -0.06, 0.42);
+  face.scale.set(0.9, 0.78, 0.42);
+  headPivot.add(face);
 
-  // Gloss-black eyes with pin-point white pupils remain visible in the dark.
+  const snout = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.68, 9), silhouetteMaterial);
+  snout.rotation.x = Math.PI / 2;
+  snout.position.set(0, -0.18, 0.63);
+  headPivot.add(snout);
+
+  const jawPivot = new THREE.Group();
+  jawPivot.position.set(0.02, -0.16, 0.34);
+  headPivot.add(jawPivot);
+  jawPivot.rotation.x = -0.14;
+  const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 0.8), mouthMaterial);
+  jaw.position.set(0, -0.02, 0.28);
+  jawPivot.add(jaw);
+
   const eyes = [];
   const pupils = [];
-  for (const x of [-0.3, 0.3]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.19, 12, 9), eyeMaterial);
-    eye.scale.set(1.08, 1.3, 0.62);
-    eye.position.set(x, 0.18, -0.88);
-    headPivot.add(eye);
-    eyes.push(eye);
+  for (const x of [-0.12, 0.12]) {
+    const socket = new THREE.Mesh(new THREE.SphereGeometry(0.105, 10, 8), eyeSocketMaterial);
+    socket.position.set(x, 0.01, 0.48);
+    socket.scale.set(0.8, 1.1, 0.42);
+    headPivot.add(socket);
+    eyes.push(socket);
 
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.04, 9, 7), pupilMaterial);
-    pupil.position.set(x, 0.19, -1.055);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 6), pupilMaterial);
+    pupil.position.set(x, 0.015, 0.56);
     headPivot.add(pupil);
     pupils.push(pupil);
   }
 
-  const upperMouth = new THREE.Mesh(new THREE.SphereGeometry(0.55, 14, 9), mouthMaterial);
-  upperMouth.scale.set(1.02, 0.36, 0.95);
-  upperMouth.position.set(0, -0.29, -0.82);
-  headPivot.add(upperMouth);
-
-  const jawPivot = new THREE.Group();
-  jawPivot.position.set(0, -0.35, -0.58);
-  headPivot.add(jawPivot);
-  jawPivot.rotation.x = 0.2;
-  const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.62, 14, 9), skin);
-  jaw.scale.set(0.94, 0.32, 1.08);
-  jaw.position.set(0, -0.13, -0.37);
-  jawPivot.add(jaw);
-  const innerJaw = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8), mouthMaterial);
-  innerJaw.scale.set(0.92, 0.24, 0.92);
-  innerJaw.position.set(0, 0.025, -0.49);
-  jawPivot.add(innerJaw);
-
-  // Long uneven teeth. The outer canines are intentionally oversized.
   const upperTeeth = [];
   const lowerTeeth = [];
-  const toothXs = [-0.42, -0.29, -0.16, -0.05, 0.06, 0.17, 0.3, 0.42];
-  toothXs.forEach((x, index) => {
-    const canine = index === 0 || index === toothXs.length - 1;
-    const height = canine ? 0.58 : 0.27 + (index % 3) * 0.055;
-    const tooth = new THREE.Mesh(new THREE.ConeGeometry(canine ? 0.085 : 0.052, height, 7), boneMaterial);
-    tooth.rotation.z = Math.PI;
-    tooth.position.set(x, -0.32 - height / 2, -1.02 + Math.abs(x) * 0.13);
-    headPivot.add(tooth);
-    upperTeeth.push(tooth);
+  [-0.16, -0.08, 0, 0.08, 0.16].forEach((x, index) => {
+    const height = index === 0 || index === 4 ? 0.26 : 0.15 + Math.abs(index - 2) * 0.03;
+    const upper = new THREE.Mesh(new THREE.ConeGeometry(0.035, height, 6), boneMaterial);
+    upper.rotation.x = Math.PI;
+    upper.position.set(x, -0.18, 0.55);
+    headPivot.add(upper);
+    upperTeeth.push(upper);
 
-    const lower = new THREE.Mesh(new THREE.ConeGeometry(canine ? 0.078 : 0.048, height * 0.8, 7), boneMaterial);
-    lower.position.set(x, 0.045 + height * 0.28, -0.82 + Math.abs(x) * 0.12);
+    const lower = new THREE.Mesh(new THREE.ConeGeometry(0.03, height * 0.8, 6), boneMaterial);
+    lower.position.set(x, 0.02, 0.48);
     jawPivot.add(lower);
     lowerTeeth.push(lower);
   });
 
-  const droolMaterial = new THREE.MeshStandardMaterial({
-    color: 0x3d0008,
-    emissive: 0x210004,
-    emissiveIntensity: 0.35,
-    roughness: 0.65,
-  });
-  [-0.28, 0.05, 0.31].forEach((x, index) => {
-    const strand = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.022, 0.48 + index * 0.11, 5), droolMaterial);
-    strand.position.set(x, -0.45 - index * 0.06, -1.02 + index * 0.035);
-    strand.rotation.z = (index - 1) * 0.08;
-    headPivot.add(strand);
-  });
+  const earRoots = [];
+  for (const side of [-1, 1]) {
+    const earRoot = new THREE.Group();
+    earRoot.position.set(side * 0.18, 0.43, 0.04);
+    headPivot.add(earRoot);
+    const ear = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.085, 1.78, 7), silhouetteMaterial);
+    ear.position.y = 0.84;
+    earRoot.add(ear);
+    const earTip = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), silhouetteMaterial);
+    earTip.position.y = 1.7;
+    earRoot.add(earTip);
+    earRoot.rotation.z = side * (0.34 + random() * 0.08);
+    earRoot.rotation.x = side * 0.04;
+    earRoots.push(earRoot);
+  }
 
-  function createCrawlingLeg(x, z, front) {
+  function createArm(x) {
     const pivot = new THREE.Group();
-    pivot.position.set(x, front ? 2.5 : 2.28, z);
+    pivot.position.set(x, 6.08, -0.04);
     group.add(pivot);
 
-    const upperLength = front ? 1.62 : 1.42;
-    const lowerLength = front ? 1.72 : 1.5;
-    const radius = front ? 0.19 : 0.22;
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.72, radius, upperLength, 7), skin);
-    upper.position.y = -upperLength / 2;
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 2.45, 7), silhouetteMaterial);
+    upper.position.y = -1.2;
     pivot.add(upper);
 
-    const joint = new THREE.Mesh(new THREE.SphereGeometry(radius * 1.15, 8, 6), stretchedSkin);
-    joint.position.y = -upperLength;
-    pivot.add(joint);
-
     const lowerPivot = new THREE.Group();
-    lowerPivot.position.y = -upperLength;
+    lowerPivot.position.y = -2.32;
     pivot.add(lowerPivot);
-    const lower = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.42, radius * 0.72, lowerLength, 7), skin);
-    lower.position.y = -lowerLength / 2;
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, 2.22, 7), silhouetteMaterial);
+    lower.position.y = -1.12;
     lowerPivot.add(lower);
 
-    const paw = new THREE.Mesh(new THREE.BoxGeometry(front ? 0.54 : 0.62, 0.22, front ? 0.82 : 0.72), stretchedSkin);
-    paw.position.set(0, -lowerLength - 0.08, -0.25);
-    paw.rotation.x = -0.1;
-    lowerPivot.add(paw);
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.44), silhouetteMaterial);
+    hand.position.set(0, -2.2, 0.02);
+    lowerPivot.add(hand);
 
     const claws = [];
-    for (const clawX of [-0.18, 0, 0.18]) {
-      const claw = new THREE.Mesh(new THREE.ConeGeometry(0.055, front ? 0.52 : 0.42, 7), clawMaterial);
-      claw.rotation.x = -Math.PI / 2;
-      claw.position.set(clawX, -lowerLength - 0.08, front ? -0.9 : -0.82);
+    for (const clawX of [-0.08, 0, 0.08]) {
+      const claw = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.42, 6), clawMaterial);
+      claw.rotation.x = Math.PI / 2;
+      claw.position.set(clawX, -2.22, 0.3);
       lowerPivot.add(claw);
       claws.push(claw);
     }
 
-    pivot.rotation.z = x < 0 ? -0.2 : 0.2;
-    pivot.rotation.x = front ? -0.34 : 0.24;
-    lowerPivot.rotation.x = front ? -0.58 : -0.35;
-    return { pivot, lowerPivot, paw, claws };
+    pivot.rotation.z = x < 0 ? 0.14 : -0.14;
+    return { pivot, lowerPivot, claws };
   }
 
-  const frontLeft = createCrawlingLeg(-0.76, -1.02, true);
-  const frontRight = createCrawlingLeg(0.76, -1.02, true);
-  const rearLeft = createCrawlingLeg(-0.58, 1.36, false);
-  const rearRight = createCrawlingLeg(0.58, 1.36, false);
+  function createLeg(x) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, 3.05, 0.18);
+    group.add(pivot);
 
-  // Spines break up the silhouette when the flashlight catches it.
-  const spines = [];
-  for (let i = 0; i < 6; i += 1) {
-    const spineSpike = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.55 + i * 0.035, 7), boneMaterial);
-    spineSpike.position.set((i % 2 ? 0.08 : -0.08), 3.12, -0.9 + i * 0.42);
-    spineSpike.rotation.z = (i % 2 ? 1 : -1) * 0.08;
-    group.add(spineSpike);
-    spines.push(spineSpike);
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 2.3, 8), silhouetteMaterial);
+    upper.position.y = -1.15;
+    pivot.add(upper);
+
+    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), faceMaterial);
+    knee.position.y = -2.28;
+    pivot.add(knee);
+
+    const lowerPivot = new THREE.Group();
+    lowerPivot.position.y = -2.25;
+    pivot.add(lowerPivot);
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 2.35, 8), silhouetteMaterial);
+    lower.position.y = -1.16;
+    lowerPivot.add(lower);
+
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, 0.8), silhouetteMaterial);
+    foot.position.set(0, -2.28, 0.18);
+    lowerPivot.add(foot);
+
+    const claws = [];
+    for (const clawX of [-0.1, 0, 0.1]) {
+      const claw = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.28, 6), clawMaterial);
+      claw.rotation.x = Math.PI / 2;
+      claw.position.set(clawX, -2.28, 0.62);
+      lowerPivot.add(claw);
+      claws.push(claw);
+    }
+
+    return { pivot, lowerPivot, foot, claws };
   }
+
+  const leftArm = createArm(-0.5);
+  const rightArm = createArm(0.58);
+  const leftLeg = createLeg(-0.28);
+  const rightLeg = createLeg(0.28);
 
   group.traverse((child) => {
     if (child.isMesh) {
@@ -932,9 +915,9 @@ function makeEntity() {
     }
   });
 
-  const redAura = new THREE.PointLight(0x9f0015, 4.6, 12, 2);
-  redAura.position.set(0, 2.7, -1.8);
-  group.add(redAura);
+  const aura = new THREE.PointLight(0x2d0000, 2.4, 9, 2);
+  aura.position.set(1.2, 7.5, 0.4);
+  group.add(aura);
 
   scene.add(group);
   return {
@@ -942,16 +925,16 @@ function makeEntity() {
     torso,
     headPivot,
     jawPivot,
-    frontLeft,
-    frontRight,
-    rearLeft,
-    rearRight,
+    leftArm,
+    rightArm,
+    leftLeg,
+    rightLeg,
     eyes,
     pupils,
     upperTeeth,
     lowerTeeth,
-    spines,
-    redAura,
+    earRoots,
+    redAura: aura,
   };
 }
 
@@ -1021,15 +1004,15 @@ function chooseStalkCell() {
       if (maze[y][x] !== 0 || cabinCells.has(`${x},${y}`)) continue;
       if (x === exitCell.x && y === exitCell.y) continue;
       const pathDistance = playerDistances[y][x];
-      if (pathDistance < 5 || pathDistance > 9) continue;
+      if (pathDistance < 4 || pathDistance > 8) continue;
       const world = worldFromCell({ x, y });
       const toCandidate = world.clone().sub(camera.position).setY(0);
       const worldDistance = toCandidate.length();
-      if (worldDistance < 29 || worldDistance > 62) continue;
+      if (worldDistance < 18 || worldDistance > 54) continue;
       toCandidate.normalize();
       const facing = forwardVector.dot(toCandidate);
       // Favor corridor-end reveals in front or to the side, not an instant spawn at the player's back.
-      if (facing < -0.15 || facing > 0.94) continue;
+      if (facing < -0.32 || facing > 0.97) continue;
       candidates.push({ x, y, score: facing + random() * 0.85 });
     }
   }
@@ -1043,7 +1026,7 @@ function relocateEntityForStalk() {
     entityParts.group.position.x - camera.position.x,
     entityParts.group.position.z - camera.position.z,
   );
-  if (distance < 23) return false;
+  if (distance < 16) return false;
   const cell = chooseStalkCell();
   if (!cell) return false;
   const position = worldFromCell(cell);
@@ -1051,8 +1034,8 @@ function relocateEntityForStalk() {
   entityPath = [];
   entityPathTimer = 0;
   previousEntityDistance = Math.hypot(position.x - camera.position.x, position.z - camera.position.z);
-  audio.roar(0.72);
-  showDanger('SOMETHING DROPPED TO ALL FOURS.', 2.4);
+  audio.roar(0.84);
+  showDanger('THE TIMBER FIGURE IS MOVING AGAIN.', 2.4);
   return true;
 }
 
@@ -1096,8 +1079,10 @@ class ProceduralAudio {
   constructor() {
     this.context = null;
     this.master = null;
+    this.musicBus = null;
     this.heartbeatTimer = 0;
     this.screechCooldown = 0;
+    this.musicTimer = 0.8;
     this.lastVoiceAt = 0;
   }
 
@@ -1105,8 +1090,13 @@ class ProceduralAudio {
     if (!this.context) {
       this.context = new (window.AudioContext || window.webkitAudioContext)();
       this.master = this.context.createGain();
-      this.master.gain.value = 0.42;
+      this.master.gain.value = 0.48;
       this.master.connect(this.context.destination);
+
+      this.musicBus = this.context.createGain();
+      this.musicBus.gain.value = 0.23;
+      this.musicBus.connect(this.master);
+
       this.startDrone();
     }
     if (this.context.state === 'suspended') await this.context.resume();
@@ -1114,19 +1104,21 @@ class ProceduralAudio {
 
   startDrone() {
     const droneGain = this.context.createGain();
-    droneGain.gain.value = 0.035;
-    droneGain.connect(this.master);
-    [37, 51.5, 73].forEach((frequency, index) => {
+    droneGain.gain.value = 0.038;
+    droneGain.connect(this.musicBus);
+    [36, 43.2, 54.6].forEach((frequency, index) => {
       const oscillator = this.context.createOscillator();
-      oscillator.type = index === 1 ? 'sawtooth' : 'sine';
+      oscillator.type = index === 1 ? 'triangle' : 'sine';
       oscillator.frequency.value = frequency;
-      oscillator.detune.value = (index - 1) * 7;
-      oscillator.connect(droneGain);
+      oscillator.detune.value = (index - 1) * 9;
+      const wobble = this.context.createGain();
+      wobble.gain.value = 0.8 / (index + 1);
+      oscillator.connect(wobble).connect(droneGain);
       oscillator.start();
     });
   }
 
-  pulse(frequency, duration, volume, type = 'sine') {
+  pulse(frequency, duration, volume, type = 'sine', destination = null) {
     if (!this.context) return;
     const now = this.context.currentTime;
     const oscillator = this.context.createOscillator();
@@ -1136,12 +1128,12 @@ class ProceduralAudio {
     gain.gain.setValueAtTime(0.0001, now);
     gain.gain.exponentialRampToValueAtTime(volume, now + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-    oscillator.connect(gain).connect(this.master);
+    oscillator.connect(gain).connect(destination || this.master);
     oscillator.start(now);
     oscillator.stop(now + duration + 0.03);
   }
 
-  noise(duration, volume, highpass = 90) {
+  noise(duration, volume, highpass = 90, destination = null) {
     if (!this.context) return;
     const sampleCount = Math.floor(this.context.sampleRate * duration);
     const buffer = this.context.createBuffer(1, sampleCount, this.context.sampleRate);
@@ -1155,7 +1147,7 @@ class ProceduralAudio {
     const gain = this.context.createGain();
     gain.gain.setValueAtTime(volume, this.context.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.0001, this.context.currentTime + duration);
-    source.connect(filter).connect(gain).connect(this.master);
+    source.connect(filter).connect(gain).connect(destination || this.master);
     source.start();
   }
 
@@ -1164,42 +1156,65 @@ class ProceduralAudio {
     this.noise(0.06, sprinting ? 0.065 : 0.04, 180);
   }
 
+  musicPhrase(urgency) {
+    if (!this.context) return;
+    const scale = [55, 62, 65, 69];
+    const root = scale[Math.floor(random() * scale.length)];
+    this.pulse(root, 0.7, 0.055 + urgency * 0.02, 'triangle', this.musicBus);
+    window.setTimeout(() => this.pulse(root * 1.5, 0.5, 0.032 + urgency * 0.018, 'sine', this.musicBus), 180);
+    window.setTimeout(() => this.pulse(root * 0.75, 0.95, 0.04 + urgency * 0.02, 'sawtooth', this.musicBus), 420);
+    if (random() < 0.45 + urgency * 0.25) {
+      window.setTimeout(() => this.noise(0.45, 0.02 + urgency * 0.015, 300, this.musicBus), 120);
+    }
+  }
+
   update(delta, entityDistance) {
     if (!this.context) return;
     this.heartbeatTimer -= delta;
     this.screechCooldown -= delta;
+    this.musicTimer -= delta;
     const urgency = THREE.MathUtils.clamp(1 - entityDistance / 42, 0, 1);
+
+    if (this.musicTimer <= 0) {
+      this.musicPhrase(urgency);
+      this.musicTimer = 3.6 - urgency * 1.4 + random() * 1.2;
+    }
+
     if (this.heartbeatTimer <= 0 && urgency > 0.08) {
       this.pulse(49, 0.13, 0.07 + urgency * 0.17, 'sine');
       window.setTimeout(() => this.pulse(44, 0.11, 0.045 + urgency * 0.12, 'sine'), 125);
       this.heartbeatTimer = 1.35 - urgency * 0.75;
     }
-    if (entityDistance < 12 && this.screechCooldown <= 0 && random() < 0.008) {
-      this.screech();
-      this.screechCooldown = 8 + random() * 7;
+
+    if (entityDistance < 18 && this.screechCooldown <= 0) {
+      const chance = THREE.MathUtils.lerp(0.02, 0.11, urgency);
+      if (random() < chance) {
+        this.screech(0.78 + urgency * 0.65);
+        this.screechCooldown = (entityDistance < 9 ? 2.4 : 4.2) + random() * 2.2;
+      }
     }
   }
 
-  screech() {
+  screech(strength = 1) {
     if (!this.context) return;
     const now = this.context.currentTime;
     const oscillator = this.context.createOscillator();
     const gain = this.context.createGain();
     const filter = this.context.createBiquadFilter();
     oscillator.type = 'sawtooth';
-    oscillator.frequency.setValueAtTime(160, now);
-    oscillator.frequency.exponentialRampToValueAtTime(910, now + 0.36);
-    oscillator.frequency.exponentialRampToValueAtTime(115, now + 1.05);
+    oscillator.frequency.setValueAtTime(150, now);
+    oscillator.frequency.exponentialRampToValueAtTime(980, now + 0.28);
+    oscillator.frequency.exponentialRampToValueAtTime(120, now + 0.92);
     filter.type = 'bandpass';
-    filter.frequency.value = 1300;
-    filter.Q.value = 2.5;
+    filter.frequency.value = 1350;
+    filter.Q.value = 2.8;
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.24, now + 0.06);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.08);
+    gain.gain.exponentialRampToValueAtTime(0.22 * strength, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.95);
     oscillator.connect(filter).connect(gain).connect(this.master);
     oscillator.start(now);
-    oscillator.stop(now + 1.1);
-    this.noise(0.75, 0.12, 700);
+    oscillator.stop(now + 0.98);
+    this.noise(0.82, 0.12 * strength, 650);
   }
 
   roar(strength = 1) {
@@ -1245,9 +1260,9 @@ class ProceduralAudio {
     utterance.voice = voices.find((voice) => /male|david|daniel|mark|fred/i.test(voice.name) && /^en/i.test(voice.lang))
       || voices.find((voice) => /^en/i.test(voice.lang))
       || null;
-    utterance.rate = 0.48;
-    utterance.pitch = 0.12;
-    utterance.volume = 0.92;
+    utterance.rate = 0.42;
+    utterance.pitch = 0.08;
+    utterance.volume = 0.96;
     window.speechSynthesis.speak(utterance);
   }
 
@@ -1256,7 +1271,7 @@ class ProceduralAudio {
   }
 
   consume() {
-    this.screech();
+    this.screech(1.25);
     this.noise(1.2, 0.31, 120);
   }
 }
@@ -1362,25 +1377,25 @@ function updateEntity(delta, nowSeconds) {
 
   if (stalkRelocationTimer <= 0) {
     const relocated = relocateEntityForStalk();
-    stalkRelocationTimer = (relocated ? 11 : 5) + random() * 8;
+    stalkRelocationTimer = (relocated ? 7.5 : 3.8) + random() * 5.2;
   }
 
   const initialDistance = Math.hypot(entityPosition.x - camera.position.x, entityPosition.z - camera.position.z);
   if (roarTimer <= 0) {
-    audio.roar(initialDistance < 20 ? 1 : 0.72);
-    if (initialDistance < 24) showDanger('VERITY ROARS.', 1.55);
-    roarTimer = 5.5 + random() * 8.5;
+    audio.roar(initialDistance < 20 ? 1 : 0.74);
+    if (initialDistance < 24) showDanger('THE TIMBER FIGURE ROARS.', 1.7);
+    roarTimer = 4.1 + random() * 5.2;
   }
   if (phraseTimer <= 0) {
     audio.sayISeeYou();
     showDanger('I  SEE  YOU', 2.8, true);
-    phraseTimer = 14 + random() * 17;
+    phraseTimer = 10 + random() * 10;
   }
 
   entityPathTimer -= delta;
   if (entityPathTimer <= 0) {
     entityPath = findPath(entityPosition, camera.position);
-    entityPathTimer = 0.27;
+    entityPathTimer = 0.24;
   }
 
   let target = camera.position;
@@ -1397,41 +1412,44 @@ function updateEntity(delta, nowSeconds) {
   if (pathDistance > 0.001) {
     pathVector.normalize();
     const distanceToPlayer = Math.hypot(entityPosition.x - camera.position.x, entityPosition.z - camera.position.z);
-    const rage = Math.min(1.5, elapsedRunTime / 145);
+    const rage = Math.min(1.55, elapsedRunTime / 135);
     let speed = ENTITY_BASE_SPEED + rage;
-    if (distanceToPlayer > 48) speed += 0.85;
-    if (distanceToPlayer < 6.5) speed -= 0.18;
+    if (distanceToPlayer > 42) speed += 1.0;
+    if (distanceToPlayer < 6.2) speed -= 0.16;
     entityPosition.addScaledVector(pathVector, speed * delta);
-    entityParts.group.rotation.y = Math.atan2(pathVector.x, pathVector.z) + Math.PI;
+    entityParts.group.rotation.y = Math.atan2(pathVector.x, pathVector.z);
   }
 
-  // An asymmetrical four-legged gait gives the creature a broken, insect-like crawl.
-  const stride = nowSeconds * (7.25 + Math.min(3.1, elapsedRunTime / 60));
-  const frontLeftSwing = Math.sin(stride) * 0.7;
-  const frontRightSwing = Math.sin(stride + Math.PI) * 0.7;
-  const rearLeftSwing = Math.sin(stride + Math.PI * 0.72) * 0.52;
-  const rearRightSwing = Math.sin(stride + Math.PI * 1.72) * 0.52;
+  const stride = nowSeconds * (4.75 + Math.min(2.1, elapsedRunTime / 85));
+  const legSwing = Math.sin(stride) * 0.62;
+  const armSwing = Math.sin(stride + Math.PI) * 0.7;
 
-  entityParts.frontLeft.pivot.rotation.x = -0.42 + frontLeftSwing;
-  entityParts.frontRight.pivot.rotation.x = -0.42 + frontRightSwing;
-  entityParts.rearLeft.pivot.rotation.x = 0.18 + rearLeftSwing;
-  entityParts.rearRight.pivot.rotation.x = 0.18 + rearRightSwing;
-  entityParts.frontLeft.lowerPivot.rotation.x = -0.7 - Math.max(0, frontLeftSwing) * 0.55;
-  entityParts.frontRight.lowerPivot.rotation.x = -0.7 - Math.max(0, frontRightSwing) * 0.55;
-  entityParts.rearLeft.lowerPivot.rotation.x = -0.4 - Math.max(0, -rearLeftSwing) * 0.5;
-  entityParts.rearRight.lowerPivot.rotation.x = -0.4 - Math.max(0, -rearRightSwing) * 0.5;
+  entityParts.leftLeg.pivot.rotation.x = legSwing - 0.08;
+  entityParts.rightLeg.pivot.rotation.x = -legSwing - 0.08;
+  entityParts.leftLeg.lowerPivot.rotation.x = 0.18 + Math.max(0, -legSwing) * 0.65;
+  entityParts.rightLeg.lowerPivot.rotation.x = 0.18 + Math.max(0, legSwing) * 0.65;
 
-  const twitch = random() < 0.018 ? (random() - 0.5) * 0.38 : 0;
-  entityParts.headPivot.rotation.z = Math.sin(nowSeconds * 2.7) * 0.12 - 0.08 + twitch;
-  entityParts.headPivot.rotation.x = -0.08 + Math.sin(nowSeconds * 1.63) * 0.1;
-  entityParts.headPivot.rotation.y = Math.sin(nowSeconds * 0.73) * 0.16;
-  entityParts.jawPivot.rotation.x = 0.24 + Math.max(0, Math.sin(nowSeconds * 4.2)) * 0.3;
-  entityParts.torso.rotation.z = Math.sin(stride * 0.5) * 0.055;
-  entityParts.group.position.y = 0.07 + Math.abs(Math.sin(stride)) * 0.12;
-  entityParts.redAura.intensity = 3.8 + Math.sin(nowSeconds * 11.3) * 0.65;
+  entityParts.leftArm.pivot.rotation.x = armSwing + 0.36;
+  entityParts.rightArm.pivot.rotation.x = -armSwing + 0.18;
+  entityParts.leftArm.lowerPivot.rotation.x = -0.26 - Math.max(0, armSwing) * 0.38;
+  entityParts.rightArm.lowerPivot.rotation.x = -0.22 - Math.max(0, -armSwing) * 0.38;
+
+  const twitch = random() < 0.026 ? (random() - 0.5) * 0.42 : 0;
+  entityParts.headPivot.rotation.z = -0.28 + Math.sin(nowSeconds * 1.8) * 0.1 + twitch;
+  entityParts.headPivot.rotation.x = 0.18 + Math.sin(nowSeconds * 1.1) * 0.08;
+  entityParts.headPivot.rotation.y = Math.sin(nowSeconds * 0.7) * 0.12;
+  entityParts.jawPivot.rotation.x = -0.12 + Math.max(0, Math.sin(nowSeconds * 3.3)) * 0.32;
+  entityParts.torso.rotation.z = -0.26 + Math.sin(stride * 0.5) * 0.05;
+  entityParts.group.position.y = 0.04 + Math.abs(Math.sin(stride)) * 0.12;
+  entityParts.redAura.intensity = 2.0 + Math.sin(nowSeconds * 10.7) * 0.5;
+
   entityParts.pupils.forEach((pupil, index) => {
-    const scale = 0.82 + Math.sin(nowSeconds * 8.4 + index) * 0.18;
+    const scale = 0.74 + Math.sin(nowSeconds * 9.2 + index) * 0.2;
     pupil.scale.setScalar(scale);
+  });
+  entityParts.earRoots.forEach((ear, index) => {
+    ear.rotation.z = (index === 0 ? -1 : 1) * (0.32 + Math.sin(nowSeconds * 2.5 + index) * 0.12);
+    ear.rotation.x = Math.sin(nowSeconds * 1.6 + index) * 0.1;
   });
 
   const distance = Math.hypot(entityPosition.x - camera.position.x, entityPosition.z - camera.position.z);
@@ -1440,8 +1458,8 @@ function updateEntity(delta, nowSeconds) {
   renderer.toneMappingExposure = BASE_EXPOSURE - threat * 0.12;
   audio.update(delta, distance);
 
-  if (distance < 21 && previousEntityDistance >= 21) showDanger('VERITY IS IN THE MAZE WITH YOU.', 2.2);
-  if (distance < 9 && previousEntityDistance >= 9) showDanger('RUN.', 1.5);
+  if (distance < 20 && previousEntityDistance >= 20) showDanger('THE TIMBER FIGURE IS NEAR.', 2.2);
+  if (distance < 8.5 && previousEntityDistance >= 8.5) showDanger('RUN.', 1.5);
   previousEntityDistance = distance;
 
   if (distance < 1.35) beginDeath();
@@ -1511,7 +1529,7 @@ function beginDeath() {
 
 function updateDeath(delta) {
   deathElapsed += delta;
-  const entityHead = entityParts.group.position.clone().add(new THREE.Vector3(0, 2.95, 0));
+  const entityHead = entityParts.headPivot.getWorldPosition(new THREE.Vector3());
   const direction = camera.position.clone().sub(entityParts.group.position).setY(0);
   if (direction.lengthSq() > 0.001) direction.normalize();
   entityParts.group.position.addScaledVector(direction, delta * 2.25);
@@ -1533,12 +1551,12 @@ function finishGame(result) {
   document.body.classList.add(result);
   if (result === 'survived') {
     endKicker.textContent = 'THE VOID LET YOU GO';
-    endTitle.textContent = 'YOU SURVIVED VERITY.';
+    endTitle.textContent = 'YOU SURVIVED THE TIMBER FIGURE.';
     endCopy.textContent = 'The maze closes behind you. Something is still breathing on the other side.';
     restartButton.textContent = 'ENTER AGAIN';
   } else {
     endKicker.textContent = 'THE HUNT IS OVER';
-    endTitle.textContent = 'VERITY CONSUMED YOU.';
+    endTitle.textContent = 'THE TIMBER FIGURE CONSUMED YOU.';
     endCopy.textContent = 'There was no rescue coming. There was only the sound behind you.';
     restartButton.textContent = 'TRY AGAIN';
   }
