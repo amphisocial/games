@@ -10,6 +10,8 @@ const WALK_SPEED = 3.35;
 const SPRINT_SPEED = 6.6;
 const MAX_STAMINA = 10;
 const ENTITY_BASE_SPEED = 3.9;
+const BASE_EXPOSURE = 1.28;
+const BASE_FOG_DENSITY = 0.0115;
 
 const root = document.getElementById('game-root');
 const staminaFill = document.getElementById('stamina-fill');
@@ -34,8 +36,8 @@ const endTitle = document.getElementById('end-title');
 const endCopy = document.getElementById('end-copy');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x010202);
-scene.fog = new THREE.FogExp2(0x020303, 0.0215);
+scene.background = new THREE.Color(0x0b171d);
+scene.fog = new THREE.FogExp2(0x0c171c, BASE_FOG_DENSITY);
 
 const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.08, 450);
 camera.rotation.order = 'YXZ';
@@ -45,7 +47,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.78;
+renderer.toneMappingExposure = BASE_EXPOSURE;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 root.appendChild(renderer.domElement);
@@ -54,18 +56,24 @@ const controls = new PointerLockControls(camera, renderer.domElement);
 controls.pointerSpeed = 0.72;
 scene.add(camera);
 
-const flashlight = new THREE.SpotLight(0xd8d2b8, 34, 42, Math.PI / 7, 0.62, 1.5);
-flashlight.position.set(0.18, -0.08, 0.12);
-flashlight.target.position.set(0, -0.15, -8);
+const flashlight = new THREE.SpotLight(0xe7e1c9, 94, 78, Math.PI / 4.8, 0.58, 1.2);
+flashlight.position.set(0.2, -0.09, 0.1);
+flashlight.target.position.set(0, -0.2, -10);
 flashlight.castShadow = true;
 flashlight.shadow.mapSize.set(512, 512);
-flashlight.shadow.camera.near = 0.5;
-flashlight.shadow.camera.far = 42;
+flashlight.shadow.camera.near = 0.4;
+flashlight.shadow.camera.far = 78;
 camera.add(flashlight);
 camera.add(flashlight.target);
 
-scene.add(new THREE.HemisphereLight(0x79808a, 0x130e0b, 0.48));
-const moonLight = new THREE.DirectionalLight(0x9eabc2, 0.72);
+// A gentle near-camera fill keeps the immediate path and the player's hands readable.
+const playerFill = new THREE.PointLight(0xb9d0dc, 1.8, 15, 2);
+playerFill.position.set(0, 0.15, 0.4);
+camera.add(playerFill);
+
+scene.add(new THREE.AmbientLight(0x61717a, 0.82));
+scene.add(new THREE.HemisphereLight(0xb7cbd6, 0x3a2a22, 1.34));
+const moonLight = new THREE.DirectionalLight(0xcbdff0, 1.95);
 moonLight.position.set(-45, 80, 30);
 moonLight.castShadow = false;
 scene.add(moonLight);
@@ -298,13 +306,142 @@ woodTexture.repeat.set(2, 1);
 groundTexture.repeat.set(2, 2);
 wallTexture.repeat.set(1.4, 1.4);
 
-const wallMaterial = new THREE.MeshStandardMaterial({ map: wallTexture, color: 0x6f7472, roughness: 1, metalness: 0 });
-const outerWallMaterial = new THREE.MeshStandardMaterial({ map: wallTexture, color: 0x3f4443, roughness: 1 });
-const groundMaterial = new THREE.MeshStandardMaterial({ map: groundTexture, color: 0x5e5849, roughness: 1 });
-const woodMaterial = new THREE.MeshStandardMaterial({ map: woodTexture, color: 0x8d694f, roughness: 0.96 });
-const darkWoodMaterial = new THREE.MeshStandardMaterial({ map: woodTexture, color: 0x35251e, roughness: 1 });
-const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x171413, roughness: 1, side: THREE.DoubleSide });
-const interiorMaterial = new THREE.MeshStandardMaterial({ color: 0x392e27, roughness: 1 });
+const wallMaterial = new THREE.MeshStandardMaterial({
+  map: wallTexture,
+  color: 0x8c9692,
+  emissive: 0x17201f,
+  emissiveIntensity: 0.3,
+  roughness: 1,
+  metalness: 0,
+});
+const outerWallMaterial = new THREE.MeshStandardMaterial({
+  map: wallTexture,
+  color: 0x58625f,
+  emissive: 0x111817,
+  emissiveIntensity: 0.25,
+  roughness: 1,
+});
+const groundMaterial = new THREE.MeshStandardMaterial({
+  map: groundTexture,
+  color: 0x807865,
+  emissive: 0x211d15,
+  emissiveIntensity: 0.28,
+  roughness: 1,
+});
+const woodMaterial = new THREE.MeshStandardMaterial({
+  map: woodTexture,
+  color: 0xa77b5b,
+  emissive: 0x21140d,
+  emissiveIntensity: 0.22,
+  roughness: 0.96,
+});
+const darkWoodMaterial = new THREE.MeshStandardMaterial({
+  map: woodTexture,
+  color: 0x4e392d,
+  emissive: 0x100b08,
+  emissiveIntensity: 0.2,
+  roughness: 1,
+});
+const roofMaterial = new THREE.MeshStandardMaterial({
+  color: 0x302b29,
+  emissive: 0x0d0b0a,
+  emissiveIntensity: 0.22,
+  roughness: 1,
+  side: THREE.DoubleSide,
+});
+const interiorMaterial = new THREE.MeshStandardMaterial({
+  color: 0x584a40,
+  emissive: 0x17110d,
+  emissiveIntensity: 0.24,
+  roughness: 1,
+});
+const cabinWindowMaterial = new THREE.MeshStandardMaterial({
+  color: 0x8b3c1e,
+  emissive: 0xff7a2f,
+  emissiveIntensity: 3.2,
+  roughness: 0.5,
+  side: THREE.DoubleSide,
+});
+
+function buildFirstPersonView() {
+  const group = new THREE.Group();
+  group.name = 'first-person-hands';
+
+  const sleeveMaterial = new THREE.MeshStandardMaterial({
+    color: 0x252c30,
+    emissive: 0x080a0b,
+    emissiveIntensity: 0.45,
+    roughness: 0.92,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const handMaterial = new THREE.MeshStandardMaterial({
+    color: 0x765448,
+    emissive: 0x100805,
+    emissiveIntensity: 0.18,
+    roughness: 0.9,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const flashlightBodyMaterial = new THREE.MeshStandardMaterial({
+    color: 0x3d4447,
+    metalness: 0.65,
+    roughness: 0.35,
+    emissive: 0x090b0c,
+    emissiveIntensity: 0.4,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const flashlightLensMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffefbb,
+    depthTest: false,
+    depthWrite: false,
+  });
+
+  const leftForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.075, 0.44, 10), sleeveMaterial);
+  leftForearm.position.set(-0.18, -0.43, -0.5);
+  leftForearm.rotation.set(1.05, 0, -0.2);
+  group.add(leftForearm);
+
+  const leftHand = new THREE.Mesh(new THREE.CapsuleGeometry(0.058, 0.11, 4, 10), handMaterial);
+  leftHand.rotation.set(Math.PI / 2, 0, 0.22);
+  leftHand.position.set(-0.12, -0.36, -0.69);
+  group.add(leftHand);
+
+  const rightForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.075, 0.46, 10), sleeveMaterial);
+  rightForearm.position.set(0.25, -0.42, -0.46);
+  rightForearm.rotation.set(1.1, 0, 0.2);
+  group.add(rightForearm);
+
+  const rightHand = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.12, 4, 10), handMaterial);
+  rightHand.rotation.set(Math.PI / 2, 0, -0.05);
+  rightHand.position.set(0.23, -0.34, -0.62);
+  group.add(rightHand);
+
+  const flashlightBody = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 0.32, 14), flashlightBodyMaterial);
+  flashlightBody.rotation.x = Math.PI / 2;
+  flashlightBody.position.set(0.255, -0.3, -0.72);
+  group.add(flashlightBody);
+
+  const flashlightHead = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.056, 0.09, 14), flashlightBodyMaterial);
+  flashlightHead.rotation.x = Math.PI / 2;
+  flashlightHead.position.set(0.255, -0.3, -0.92);
+  group.add(flashlightHead);
+
+  const flashlightLens = new THREE.Mesh(new THREE.CircleGeometry(0.058, 18), flashlightLensMaterial);
+  flashlightLens.position.set(0.255, -0.3, -0.969);
+  group.add(flashlightLens);
+
+  group.traverse((object) => {
+    if (!object.isMesh) return;
+    object.frustumCulled = false;
+    object.renderOrder = 1000;
+  });
+  camera.add(group);
+  return group;
+}
+
+const firstPersonView = buildFirstPersonView();
 
 function buildMazeMeshes() {
   const innerWalls = [];
@@ -443,20 +580,30 @@ function buildCabin(cell, doorDirection, lightIndex) {
   table.castShadow = true;
   cabin.add(table);
 
+  // Emissive windows make cabins visible landmarks without revealing the maze layout.
+  const rearWindow = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.72), cabinWindowMaterial);
+  rearWindow.position.set(0.65, 1.65, depth / 2 + 0.121);
+  cabin.add(rearWindow);
+
+  const sideWindow = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.72), cabinWindowMaterial);
+  sideWindow.position.set(width / 2 + 0.121, 1.62, 0.55);
+  sideWindow.rotation.y = Math.PI / 2;
+  cabin.add(sideWindow);
+
+  if (lightIndex < 8) {
+    const interiorGlow = new THREE.PointLight(0xff9a53, 2.7, 11, 2);
+    interiorGlow.position.set(0, 1.85, 0.1);
+    cabin.add(interiorGlow);
+  }
+
   const lanternMaterial = new THREE.MeshStandardMaterial({
     color: 0x3a1b10,
     emissive: 0xd46b27,
-    emissiveIntensity: lightIndex % 3 === 0 ? 4 : 1.9,
+    emissiveIntensity: lightIndex % 3 === 0 ? 5.2 : 3.1,
   });
   const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), lanternMaterial);
   lantern.position.set(0, 2.12, -depth / 2 - 0.14);
   cabin.add(lantern);
-
-  if (lightIndex < 6) {
-    const glow = new THREE.PointLight(0xbc4d24, 2.6, 9, 2.1);
-    glow.position.set(0, 2.05, -depth / 2 - 0.35);
-    cabin.add(glow);
-  }
 
   const markCanvas = document.createElement('canvas');
   markCanvas.width = 256;
@@ -939,7 +1086,24 @@ function updatePlayer(delta, nowSeconds) {
     footstepTimer = Math.min(footstepTimer, 0.12);
   }
 
-  flashlight.intensity = 31 + Math.sin(nowSeconds * 17.7) * 1.6 + (random() < 0.012 ? -13 : 0);
+  const viewSway = inputLength > 0 ? 1 : 0;
+  firstPersonView.position.x = THREE.MathUtils.lerp(
+    firstPersonView.position.x,
+    Math.sin(bobPhase * 0.5) * 0.018 * viewSway,
+    Math.min(1, delta * 9),
+  );
+  firstPersonView.position.y = THREE.MathUtils.lerp(
+    firstPersonView.position.y,
+    -Math.abs(Math.sin(bobPhase)) * 0.017 * viewSway,
+    Math.min(1, delta * 9),
+  );
+  firstPersonView.rotation.z = THREE.MathUtils.lerp(
+    firstPersonView.rotation.z,
+    Math.sin(bobPhase * 0.5) * 0.018 * viewSway,
+    Math.min(1, delta * 8),
+  );
+
+  flashlight.intensity = 90 + Math.sin(nowSeconds * 17.7) * 2.6 + (random() < 0.004 ? -12 : 0);
 }
 
 function updateEntity(delta, nowSeconds) {
@@ -991,7 +1155,7 @@ function updateEntity(delta, nowSeconds) {
   const distance = Math.hypot(entityPosition.x - camera.position.x, entityPosition.z - camera.position.z);
   const threat = THREE.MathUtils.clamp(1 - distance / 24, 0, 1);
   damageVignette.style.opacity = String(threat * 0.43);
-  renderer.toneMappingExposure = 0.78 - threat * 0.12;
+  renderer.toneMappingExposure = BASE_EXPOSURE - threat * 0.1;
   audio.update(delta, distance);
 
   if (distance < 18 && previousEntityDistance >= 18) showDanger('VERITY IS CLOSE.', 2.2);
@@ -1033,6 +1197,7 @@ function beginFall() {
   pauseOverlay.classList.remove('visible');
   hud.style.display = 'none';
   crosshair.style.display = 'none';
+  firstPersonView.visible = false;
   audio.fall();
 }
 
@@ -1044,8 +1209,8 @@ function updateFall(delta) {
   camera.position.y = EYE_HEIGHT - fallElapsed * fallElapsed * 6.8;
   camera.rotation.x = THREE.MathUtils.lerp(camera.rotation.x, -0.32, Math.min(1, delta * 1.7));
   camera.rotation.z += delta * 0.24;
-  scene.fog.density = 0.0215 + fallElapsed * 0.085;
-  renderer.toneMappingExposure = Math.max(0, 0.78 - fallElapsed * 0.34);
+  scene.fog.density = BASE_FOG_DENSITY + fallElapsed * 0.085;
+  renderer.toneMappingExposure = Math.max(0, BASE_EXPOSURE - fallElapsed * 0.42);
   if (fallElapsed >= 2.35) finishGame('survived');
 }
 
@@ -1058,6 +1223,7 @@ function beginDeath() {
   pauseOverlay.classList.remove('visible');
   hud.style.display = 'none';
   crosshair.style.display = 'none';
+  firstPersonView.visible = false;
   audio.consume();
 }
 
@@ -1072,7 +1238,7 @@ function updateDeath(delta) {
   entityParts.jawPivot.rotation.x = Math.min(1.32, deathElapsed * 1.25);
   entityParts.headPivot.rotation.x = -Math.min(0.55, deathElapsed * 0.5);
   damageVignette.style.opacity = String(Math.min(1, 0.35 + deathElapsed * 0.5));
-  renderer.toneMappingExposure = Math.max(0.18, 0.78 - deathElapsed * 0.36);
+  renderer.toneMappingExposure = Math.max(0.2, BASE_EXPOSURE - deathElapsed * 0.46);
   if (deathElapsed >= 1.65) finishGame('consumed');
 }
 
@@ -1144,7 +1310,7 @@ function setupGameWorld() {
   const worldSize = GRID_SIZE * CELL_SIZE;
   const overhead = new THREE.Mesh(
     new THREE.PlaneGeometry(worldSize * 1.6, worldSize * 1.6),
-    new THREE.MeshBasicMaterial({ color: 0x020304, side: THREE.DoubleSide }),
+    new THREE.MeshBasicMaterial({ color: 0x101f27, side: THREE.DoubleSide }),
   );
   overhead.position.y = 24;
   overhead.rotation.x = Math.PI / 2;
