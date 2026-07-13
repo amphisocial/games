@@ -12,6 +12,10 @@ const MAX_STAMINA = 10;
 const ENTITY_BASE_SPEED = 4.15;
 const BASE_EXPOSURE = 1.28;
 const BASE_FOG_DENSITY = 0.0115;
+const MAX_STUN_SHOTS = 2;
+const STUN_DURATION = 6;
+const STUN_RANGE = 25;
+const STUN_AIM_DOT = 0.72;
 
 const root = document.getElementById('game-root');
 const staminaFill = document.getElementById('stamina-fill');
@@ -34,6 +38,9 @@ const hud = document.getElementById('hud');
 const endKicker = document.getElementById('end-kicker');
 const endTitle = document.getElementById('end-title');
 const endCopy = document.getElementById('end-copy');
+const weaponHud = document.getElementById('weapon-hud');
+const weaponShotsText = document.getElementById('weapon-shots');
+const weaponStatusText = document.getElementById('weapon-status');
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b171d);
@@ -88,6 +95,11 @@ const rightVector = new THREE.Vector3();
 const desiredMovement = new THREE.Vector3();
 const tempMatrix = new THREE.Matrix4();
 const tempObject = new THREE.Object3D();
+const stunOrigin = new THREE.Vector3();
+const stunTarget = new THREE.Vector3();
+const stunDirection = new THREE.Vector3();
+const beamUpAxis = new THREE.Vector3(0, 1, 0);
+const beamEffects = [];
 
 let maze;
 let startCell;
@@ -118,6 +130,12 @@ let roarTimer = 2.1 + randomSeedDelay() * 0.5;
 let phraseTimer = 8.8 + randomSeedDelay() * 1.2;
 let entityVoiceActive = false;
 let lastWhisperLineIndex = -1;
+let stunGunEquipped = false;
+let stunShots = MAX_STUN_SHOTS;
+let entityStunTimer = 0;
+let entityStunEndsAt = 0;
+let stunPausedAt = 0;
+let weaponCooldownUntil = 0;
 
 const MONSTER_WHISPERS = [
   { spoken: 'I see you', display: 'I  SEE  YOU' },
@@ -492,6 +510,89 @@ function buildFirstPersonView() {
 }
 
 const firstPersonView = buildFirstPersonView();
+
+
+function buildStunGunView(parent) {
+  const group = new THREE.Group();
+  group.name = 'stun-gun-view';
+  group.position.set(-0.02, -0.34, -0.71);
+  group.rotation.set(-0.03, -0.03, 0.015);
+
+  const gunMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1d2930,
+    metalness: 0.68,
+    roughness: 0.26,
+    emissive: 0x031019,
+    emissiveIntensity: 0.7,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const gripMaterial = new THREE.MeshStandardMaterial({
+    color: 0x0d1114,
+    metalness: 0.25,
+    roughness: 0.72,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const blueMaterial = new THREE.MeshBasicMaterial({
+    color: 0x60d8ff,
+    transparent: true,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending,
+    depthTest: false,
+    depthWrite: false,
+  });
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.16, 0.5), gunMaterial);
+  body.position.set(0, 0, -0.12);
+  group.add(body);
+
+  const upperRail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.055, 0.42), gunMaterial);
+  upperRail.position.set(0, 0.105, -0.12);
+  group.add(upperRail);
+
+  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.31, 0.14), gripMaterial);
+  grip.position.set(0, -0.2, 0.03);
+  grip.rotation.x = -0.2;
+  group.add(grip);
+
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.072, 0.22, 12), gunMaterial);
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.set(0, 0, -0.47);
+  group.add(barrel);
+
+  const emitter = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.014, 7, 18), blueMaterial);
+  emitter.rotation.x = Math.PI / 2;
+  emitter.position.set(0, 0, -0.59);
+  group.add(emitter);
+
+  const chargeCellLeft = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.07, 0.16), blueMaterial.clone());
+  const chargeCellRight = chargeCellLeft.clone();
+  chargeCellLeft.position.set(-0.075, 0.015, -0.05);
+  chargeCellRight.position.set(0.075, 0.015, -0.05);
+  group.add(chargeCellLeft, chargeCellRight);
+
+  const muzzle = new THREE.Object3D();
+  muzzle.position.set(0, 0, -0.63);
+  group.add(muzzle);
+
+  group.traverse((object) => {
+    if (!object.isMesh) return;
+    object.frustumCulled = false;
+    object.renderOrder = 1002;
+  });
+
+  group.userData = {
+    muzzle,
+    emitter,
+    chargeCells: [chargeCellLeft, chargeCellRight],
+  };
+  group.visible = false;
+  parent.add(group);
+  return group;
+}
+
+const stunGunView = buildStunGunView(firstPersonView);
 
 function buildMazeMeshes() {
   const innerWalls = [];
@@ -1067,6 +1168,29 @@ function makeEntity() {
   aura.position.set(1.2, 7.5, 0.4);
   group.add(aura);
 
+  const electricField = new THREE.Group();
+  electricField.visible = false;
+  group.add(electricField);
+  const electricLines = [];
+  for (let arcIndex = 0; arcIndex < 9; arcIndex += 1) {
+    const arcGeometry = new THREE.BufferGeometry();
+    arcGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(15), 3));
+    const arcMaterial = new THREE.LineBasicMaterial({
+      color: arcIndex % 2 === 0 ? 0x72e6ff : 0x237dff,
+      transparent: true,
+      opacity: 0.82,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const arc = new THREE.Line(arcGeometry, arcMaterial);
+    arc.frustumCulled = false;
+    electricField.add(arc);
+    electricLines.push(arc);
+  }
+  const stunLight = new THREE.PointLight(0x33aaff, 0, 13, 2);
+  stunLight.position.set(0.4, 5.2, 0);
+  group.add(stunLight);
+
   scene.add(group);
   return {
     group,
@@ -1083,6 +1207,9 @@ function makeEntity() {
     lowerTeeth,
     earRoots,
     redAura: aura,
+    electricField,
+    electricLines,
+    stunLight,
   };
 }
 
@@ -1345,7 +1472,7 @@ class ProceduralAudio {
     }
   }
 
-  update(delta, entityDistance) {
+  update(delta, entityDistance, suppressShriek = false) {
     if (!this.context) return;
     this.heartbeatTimer -= delta;
     this.screechCooldown -= delta;
@@ -1363,7 +1490,7 @@ class ProceduralAudio {
       this.heartbeatTimer = 1.35 - urgency * 0.75;
     }
 
-    if (entityDistance < 18 && this.screechCooldown <= 0) {
+    if (!suppressShriek && entityDistance < 18 && this.screechCooldown <= 0) {
       const chance = THREE.MathUtils.lerp(0.02, 0.11, urgency);
       if (random() < chance) {
         this.screech(0.78 + urgency * 0.65);
@@ -1475,6 +1602,40 @@ class ProceduralAudio {
     return true;
   }
 
+  stunBlast() {
+    if (!this.context) return;
+    const now = this.context.currentTime;
+    const zapGain = this.context.createGain();
+    const filter = this.context.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2400, now);
+    filter.frequency.exponentialRampToValueAtTime(620, now + 0.38);
+    zapGain.gain.setValueAtTime(0.0001, now);
+    zapGain.gain.exponentialRampToValueAtTime(0.34, now + 0.012);
+    zapGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.46);
+    zapGain.connect(this.master);
+
+    [120, 240, 620].forEach((frequency, index) => {
+      const oscillator = this.context.createOscillator();
+      oscillator.type = index === 2 ? 'sawtooth' : 'square';
+      oscillator.frequency.setValueAtTime(frequency, now);
+      oscillator.frequency.exponentialRampToValueAtTime(frequency * 2.8, now + 0.12);
+      oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.55, now + 0.42);
+      const gain = this.context.createGain();
+      gain.gain.value = 0.32 / (index + 1);
+      oscillator.connect(gain).connect(filter).connect(zapGain);
+      oscillator.start(now);
+      oscillator.stop(now + 0.48);
+    });
+    this.noise(0.5, 0.22, 900);
+    window.setTimeout(() => this.pulse(72, 0.32, 0.16, 'sawtooth'), 55);
+  }
+
+  emptyClick() {
+    this.pulse(840, 0.045, 0.08, 'square');
+    window.setTimeout(() => this.pulse(510, 0.05, 0.055, 'square'), 70);
+  }
+
   fall() {
     this.pulse(34, 2.2, 0.24, 'sine');
   }
@@ -1493,6 +1654,279 @@ function showDanger(message, duration = 1.6, entityVoice = false) {
   dangerMessage.classList.add('visible');
   entityVoiceActive = entityVoice;
   dangerTextTimer = duration;
+}
+
+
+function updateWeaponHud() {
+  if (!weaponHud || !weaponShotsText || !weaponStatusText) return;
+  weaponShotsText.textContent = `${stunShots} / ${MAX_STUN_SHOTS} SHOTS`;
+  weaponHud.classList.toggle('equipped', stunGunEquipped);
+  weaponHud.classList.toggle('empty', stunShots <= 0);
+
+  let status = 'E  EQUIP';
+  let targetReady = false;
+  if (entityStunTimer > 0) {
+    status = `FIGURE STUNNED  ${entityStunTimer.toFixed(1)}s`;
+  } else if (stunGunEquipped && stunShots <= 0) {
+    status = 'EMPTY';
+  } else if (stunGunEquipped) {
+    const targetState = getStunTargetState(false);
+    targetReady = targetState.ready;
+    status = targetReady ? 'SPACE  FIRE — TARGET READY' : 'SPACE  FIRE WHEN NEAR';
+  }
+
+  weaponStatusText.textContent = status;
+  weaponHud.classList.toggle('target-ready', targetReady);
+  crosshair.classList.toggle('stun-ready', targetReady);
+  root.dataset.stunShots = String(stunShots);
+  root.dataset.stunEquipped = String(stunGunEquipped);
+  root.dataset.entityStunned = String(entityStunTimer > 0);
+
+  const cells = stunGunView.userData.chargeCells;
+  cells.forEach((cell, index) => {
+    cell.visible = index < stunShots;
+  });
+}
+
+function toggleStunGun() {
+  if (!started || paused || ended || falling || dying) return;
+  stunGunEquipped = !stunGunEquipped;
+  stunGunView.visible = stunGunEquipped;
+  if (stunGunEquipped) {
+    showDanger(stunShots > 0 ? `STUN GUN READY — ${stunShots} SHOTS.` : 'THE STUN GUN IS EMPTY.', 1.6);
+    audio.pulse(stunShots > 0 ? 620 : 180, 0.08, 0.08, 'square');
+  } else {
+    showDanger('STUN GUN HOLSTERED.', 1.1);
+    audio.pulse(280, 0.07, 0.05, 'triangle');
+  }
+  updateWeaponHud();
+}
+
+function hasClearStunShot(origin, target) {
+  const dx = target.x - origin.x;
+  const dz = target.z - origin.z;
+  const distance = Math.hypot(dx, dz);
+  if (distance <= 1.2) return true;
+  const steps = Math.ceil(distance / 0.42);
+  for (let step = 2; step < steps - 2; step += 1) {
+    const ratio = step / steps;
+    const x = origin.x + dx * ratio;
+    const z = origin.z + dz * ratio;
+    if (!isWalkable(x, z, 0.11)) return false;
+  }
+  return true;
+}
+
+function getStunTargetState(checkLineOfSight = true) {
+  if (!entityParts || ended || falling || dying) {
+    return { ready: false, distance: Infinity, aimed: false, clear: false, target: null };
+  }
+
+  camera.getWorldPosition(stunOrigin);
+  entityParts.torso.getWorldPosition(stunTarget);
+  stunDirection.copy(stunTarget).sub(stunOrigin);
+  const distance = stunDirection.length();
+  if (distance < 0.001) {
+    return { ready: true, distance, aimed: true, clear: true, target: stunTarget.clone() };
+  }
+
+  stunDirection.normalize();
+  camera.getWorldDirection(forwardVector);
+  const aimed = forwardVector.dot(stunDirection) >= STUN_AIM_DOT;
+  const near = distance <= STUN_RANGE;
+  const clear = !checkLineOfSight || (near && aimed && hasClearStunShot(stunOrigin, stunTarget));
+  return {
+    ready: near && aimed && clear && entityStunTimer <= 0,
+    distance,
+    aimed,
+    clear,
+    target: stunTarget.clone(),
+  };
+}
+
+function makeBeamCylinder(start, end, radius, material) {
+  const direction = end.clone().sub(start);
+  const length = direction.length();
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, 10), material);
+  mesh.position.copy(start).add(end).multiplyScalar(0.5);
+  mesh.quaternion.setFromUnitVectors(beamUpAxis, direction.normalize());
+  mesh.frustumCulled = false;
+  return mesh;
+}
+
+function createStunBeam(targetPosition) {
+  camera.updateMatrixWorld(true);
+  stunGunView.userData.muzzle.getWorldPosition(stunOrigin);
+  const start = stunOrigin.clone();
+  const end = targetPosition.clone();
+  const group = new THREE.Group();
+  const materials = [];
+  const geometries = [];
+
+  const coreMaterial = new THREE.MeshBasicMaterial({
+    color: 0xb7f4ff,
+    transparent: true,
+    opacity: 1,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const glowMaterial = new THREE.MeshBasicMaterial({
+    color: 0x168cff,
+    transparent: true,
+    opacity: 0.38,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  materials.push(coreMaterial, glowMaterial);
+
+  const glow = makeBeamCylinder(start, end, 0.13, glowMaterial);
+  const core = makeBeamCylinder(start, end, 0.035, coreMaterial);
+  group.add(glow, core);
+  geometries.push(glow.geometry, core.geometry);
+
+  const beamVector = end.clone().sub(start);
+  const beamLength = beamVector.length();
+  const beamNormal = beamVector.clone().normalize();
+  const tangent = new THREE.Vector3().crossVectors(beamNormal, camera.up).normalize();
+  const bitangent = new THREE.Vector3().crossVectors(beamNormal, tangent).normalize();
+
+  for (let arcIndex = 0; arcIndex < 4; arcIndex += 1) {
+    const points = [];
+    for (let pointIndex = 0; pointIndex <= 9; pointIndex += 1) {
+      const ratio = pointIndex / 9;
+      const point = start.clone().addScaledVector(beamNormal, beamLength * ratio);
+      if (pointIndex > 0 && pointIndex < 9) {
+        point.addScaledVector(tangent, (random() - 0.5) * 0.35);
+        point.addScaledVector(bitangent, (random() - 0.5) * 0.35);
+      }
+      points.push(point);
+    }
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({
+      color: arcIndex % 2 === 0 ? 0x7de9ff : 0x206cff,
+      transparent: true,
+      opacity: 0.92,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    group.add(new THREE.Line(geometry, material));
+    geometries.push(geometry);
+    materials.push(material);
+  }
+
+  const impactMaterial = new THREE.MeshBasicMaterial({
+    color: 0xa9efff,
+    transparent: true,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const impact = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 10), impactMaterial);
+  impact.position.copy(end);
+  group.add(impact);
+  geometries.push(impact.geometry);
+  materials.push(impactMaterial);
+
+  const impactLight = new THREE.PointLight(0x42c8ff, 8, 12, 2);
+  impactLight.position.copy(end);
+  group.add(impactLight);
+
+  scene.add(group);
+  beamEffects.push({ group, materials, geometries, impact, impactLight, ttl: 0.28, duration: 0.28 });
+}
+
+function updateBeamEffects(delta) {
+  for (let index = beamEffects.length - 1; index >= 0; index -= 1) {
+    const effect = beamEffects[index];
+    effect.ttl -= delta;
+    const alpha = Math.max(0, effect.ttl / effect.duration);
+    effect.materials.forEach((material, materialIndex) => {
+      material.opacity = (materialIndex === 1 ? 0.38 : 0.95) * alpha;
+    });
+    effect.impact.scale.setScalar(1 + (1 - alpha) * 2.5);
+    effect.impactLight.intensity = 8 * alpha;
+    if (effect.ttl <= 0) {
+      scene.remove(effect.group);
+      effect.geometries.forEach((geometry) => geometry.dispose());
+      effect.materials.forEach((material) => material.dispose());
+      beamEffects.splice(index, 1);
+    }
+  }
+}
+
+function updateStunElectricField(nowSeconds) {
+  if (!entityParts?.electricLines) return;
+  entityParts.electricLines.forEach((arc, arcIndex) => {
+    const positions = arc.geometry.attributes.position;
+    const baseY = 1.1 + ((arcIndex * 0.83 + nowSeconds * 5.5) % 6.8);
+    for (let pointIndex = 0; pointIndex < positions.count; pointIndex += 1) {
+      const ratio = pointIndex / (positions.count - 1);
+      const angle = nowSeconds * 8.5 + arcIndex * 1.7 + ratio * Math.PI * 1.8;
+      const radius = 0.5 + Math.sin(angle * 1.6) * 0.26;
+      positions.setXYZ(
+        pointIndex,
+        Math.cos(angle) * radius + (random() - 0.5) * 0.22,
+        baseY + ratio * 1.25 + (random() - 0.5) * 0.24,
+        Math.sin(angle) * radius * 0.65 + (random() - 0.5) * 0.22,
+      );
+    }
+    positions.needsUpdate = true;
+    arc.material.opacity = 0.55 + random() * 0.4;
+  });
+}
+
+function fireStunGun() {
+  if (!started || paused || ended || falling || dying || performance.now() < weaponCooldownUntil) return;
+  if (!stunGunEquipped) {
+    showDanger('PRESS E TO EQUIP THE STUN GUN.', 1.5);
+    return;
+  }
+  if (stunShots <= 0) {
+    audio.emptyClick();
+    showDanger('THE STUN GUN IS EMPTY.', 1.5);
+    return;
+  }
+  if (entityStunTimer > 0) {
+    showDanger(`THE FIGURE IS ALREADY STUNNED — ${entityStunTimer.toFixed(1)}s.`, 1.5);
+    return;
+  }
+
+  const targetState = getStunTargetState(true);
+  if (targetState.distance > STUN_RANGE) {
+    showDanger('THE TIMBER FIGURE IS TOO FAR AWAY.', 1.5);
+    audio.emptyClick();
+    return;
+  }
+  if (!targetState.aimed) {
+    showDanger('AIM AT THE TIMBER FIGURE.', 1.35);
+    audio.emptyClick();
+    return;
+  }
+  if (!targetState.clear) {
+    showDanger('NO CLEAR SHOT.', 1.35);
+    audio.emptyClick();
+    return;
+  }
+
+  stunShots -= 1;
+  entityStunTimer = STUN_DURATION;
+  entityStunEndsAt = performance.now() + STUN_DURATION * 1000;
+  stunPausedAt = 0;
+  weaponCooldownUntil = performance.now() + 650;
+  entityPath = [];
+  entityPathTimer = 0;
+  stalkRelocationTimer = Math.max(stalkRelocationTimer, STUN_DURATION + 2.5);
+  roarTimer = Math.max(roarTimer, STUN_DURATION + 1.5);
+  phraseTimer = Math.max(phraseTimer, STUN_DURATION + 3.5);
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+
+  createStunBeam(targetState.target);
+  audio.stunBlast();
+  entityParts.electricField.visible = true;
+  entityParts.redAura.color.setHex(0x168cff);
+  entityParts.stunLight.intensity = 8;
+  showDanger('DIRECT HIT — STUNNED FOR 6 SECONDS.', 2.2);
+  updateWeaponHud();
 }
 
 function updateStaminaHud() {
@@ -1574,6 +2008,17 @@ function updatePlayer(delta, nowSeconds) {
     Math.min(1, delta * 8),
   );
 
+  if (stunGunEquipped) {
+    stunGunView.position.y = THREE.MathUtils.lerp(stunGunView.position.y, -0.34, Math.min(1, delta * 12));
+    stunGunView.rotation.z = THREE.MathUtils.lerp(
+      stunGunView.rotation.z,
+      0.015 + Math.sin(bobPhase * 0.5) * 0.018 * viewSway,
+      Math.min(1, delta * 9),
+    );
+    stunGunView.userData.emitter.material.opacity = 0.78 + Math.sin(nowSeconds * 12) * 0.18;
+  }
+  updateWeaponHud();
+
   flashlight.intensity = 90 + Math.sin(nowSeconds * 17.7) * 2.6 + (random() < 0.004 ? -12 : 0);
 }
 
@@ -1588,6 +2033,56 @@ function pickMonsterWhisper() {
 
 function updateEntity(delta, nowSeconds) {
   const entityPosition = entityParts.group.position;
+  const currentDistance = Math.hypot(entityPosition.x - camera.position.x, entityPosition.z - camera.position.z);
+
+  if (entityStunEndsAt > 0) {
+    entityStunTimer = Math.max(0, (entityStunEndsAt - performance.now()) / 1000);
+    entityPath = [];
+    entityParts.electricField.visible = true;
+    entityParts.redAura.color.setHex(0x168cff);
+    entityParts.redAura.intensity = 5.8 + Math.sin(nowSeconds * 22) * 1.2;
+    entityParts.stunLight.intensity = 7.2 + Math.sin(nowSeconds * 31) * 1.8;
+    updateStunElectricField(nowSeconds);
+
+    const seizure = Math.sin(nowSeconds * 34) * 0.12;
+    entityParts.group.position.y = 0.04 + Math.abs(Math.sin(nowSeconds * 19)) * 0.08;
+    entityParts.torso.rotation.z = -0.26 + seizure;
+    entityParts.headPivot.rotation.z = -0.28 - seizure * 1.8;
+    entityParts.headPivot.rotation.x = 0.18 + Math.sin(nowSeconds * 27) * 0.09;
+    entityParts.jawPivot.rotation.x = 0.12 + Math.abs(Math.sin(nowSeconds * 18)) * 0.35;
+    entityParts.leftArm.pivot.rotation.x = 0.3 + Math.sin(nowSeconds * 25) * 0.18;
+    entityParts.rightArm.pivot.rotation.x = 0.2 - Math.sin(nowSeconds * 26) * 0.18;
+    entityParts.leftLeg.pivot.rotation.x = -0.12 + Math.sin(nowSeconds * 23) * 0.12;
+    entityParts.rightLeg.pivot.rotation.x = -0.12 - Math.sin(nowSeconds * 24) * 0.12;
+
+    const threat = THREE.MathUtils.clamp(1 - currentDistance / 28, 0, 1);
+    damageVignette.style.opacity = String(threat * 0.26);
+    renderer.toneMappingExposure = BASE_EXPOSURE - threat * 0.06;
+    audio.update(delta, currentDistance, true);
+    updateWeaponHud();
+
+    if (entityStunTimer <= 0) {
+      entityStunEndsAt = 0;
+      stunPausedAt = 0;
+      entityParts.electricField.visible = false;
+      entityParts.stunLight.intensity = 0;
+      entityParts.redAura.color.setHex(0x2d0000);
+      entityParts.redAura.intensity = 2.4;
+      stalkRelocationTimer = 3.5 + random() * 3.5;
+      roarTimer = 1.2 + random() * 2.2;
+      phraseTimer = 4.5 + random() * 5;
+      showDanger('THE TIMBER FIGURE CAN MOVE AGAIN.', 2.1);
+      audio.roar(0.62);
+    }
+    previousEntityDistance = currentDistance;
+    return;
+  }
+
+  if (entityParts.electricField.visible) {
+    entityParts.electricField.visible = false;
+    entityParts.stunLight.intensity = 0;
+    entityParts.redAura.color.setHex(0x2d0000);
+  }
 
   stalkRelocationTimer -= delta;
   roarTimer -= delta;
@@ -1715,6 +2210,7 @@ function beginFall() {
   startOverlay.classList.remove('visible');
   pauseOverlay.classList.remove('visible');
   hud.style.display = 'none';
+  weaponHud.style.display = 'none';
   crosshair.style.display = 'none';
   firstPersonView.visible = false;
   audio.fall();
@@ -1741,6 +2237,7 @@ function beginDeath() {
   controls.unlock();
   pauseOverlay.classList.remove('visible');
   hud.style.display = 'none';
+  weaponHud.style.display = 'none';
   crosshair.style.display = 'none';
   firstPersonView.visible = false;
   audio.consume();
@@ -1782,8 +2279,20 @@ function finishGame(result) {
   endOverlay.classList.add('visible');
 }
 
+function freezeStunTimerForPause() {
+  if (entityStunEndsAt > 0 && stunPausedAt === 0) stunPausedAt = performance.now();
+}
+
+function resumeStunTimerAfterPause() {
+  if (entityStunEndsAt > 0 && stunPausedAt > 0) {
+    entityStunEndsAt += performance.now() - stunPausedAt;
+    stunPausedAt = 0;
+  }
+}
+
 function pauseGame() {
   if (!started || paused || ended || falling || dying) return;
+  freezeStunTimerForPause();
   paused = true;
   keys.clear();
   controls.unlock();
@@ -1826,6 +2335,7 @@ function setupGameWorld() {
   const entitySpawn = findFarthestCell(distanceFromStart, exclusions);
   const spawnPosition = worldFromCell(entitySpawn);
   entity.position.set(spawnPosition.x, 0, spawnPosition.z);
+  updateWeaponHud();
 
   const worldSize = GRID_SIZE * CELL_SIZE;
   const overhead = new THREE.Mesh(
@@ -1859,6 +2369,7 @@ async function loadUser() {
 
 controls.addEventListener('lock', () => {
   if (ended || falling || dying) return;
+  resumeStunTimerAfterPause();
   started = true;
   paused = false;
   startOverlay.classList.remove('visible');
@@ -1868,6 +2379,7 @@ controls.addEventListener('lock', () => {
 
 controls.addEventListener('unlock', () => {
   if (started && !ended && !falling && !dying && !paused) {
+    freezeStunTimerForPause();
     paused = true;
     keys.clear();
     pauseOverlay.classList.add('visible');
@@ -1878,6 +2390,14 @@ window.addEventListener('keydown', (event) => {
   if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight'].includes(event.code)) {
     keys.add(event.code);
     event.preventDefault();
+  }
+  if (event.code === 'KeyE' && !event.repeat) {
+    event.preventDefault();
+    toggleStunGun();
+  }
+  if (event.code === 'Space' && !event.repeat) {
+    event.preventDefault();
+    fireStunGun();
   }
   if (event.code === 'KeyP') pauseGame();
 });
@@ -1925,6 +2445,7 @@ function animate(frameTime) {
   }
 
   updateExitParticles(nowSeconds);
+  updateBeamEffects(delta);
 
   if (falling && !ended) {
     updateFall(delta);

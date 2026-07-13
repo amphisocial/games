@@ -43,6 +43,12 @@
     <div id="crosshair" class="crosshair" aria-hidden="true"><span></span><span></span></div>
     <div id="danger-message" class="danger-message" role="status"></div>
 
+    <aside id="weapon-hud" class="weapon-hud" aria-live="polite">
+      <span class="weapon-label"><kbd>E</kbd> STUN GUN</span>
+      <span id="weapon-shots" class="weapon-shots">2 / 2 SHOTS</span>
+      <span id="weapon-status" class="weapon-status">E&nbsp;&nbsp;EQUIP</span>
+    </aside>
+
     <section id="start-overlay" class="overlay visible" aria-labelledby="start-title">
       <div class="overlay-panel">
         <p class="eyebrow">THE TIMBER MAZE</p>
@@ -55,6 +61,8 @@
           <span><kbd>W A S D</kbd> Move</span>
           <span><kbd>Mouse</kbd> Look</span>
           <span><kbd>W + Shift</kbd> Sprint</span>
+          <span><kbd>E</kbd> Equip stun gun</span>
+          <span><kbd>Space</kbd> Fire stun beam</span>
           <span><kbd>Esc</kbd> Pause</span>
         </div>
         <button id="enter-button" class="primary-button" type="button">ENTER THE MAZE</button>

@@ -405,6 +405,88 @@ kbd {
   top: 8px;
 }
 
+
+.weapon-hud {
+  position: fixed;
+  z-index: 11;
+  right: 24px;
+  bottom: 22px;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 3px 12px;
+  min-width: 190px;
+  padding: 8px 10px;
+  pointer-events: none;
+  border: 1px solid rgba(140, 205, 225, .18);
+  background: rgba(2, 8, 11, .62);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .4);
+  color: #87959a;
+  font-size: .54rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  transition: border-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+
+.weapon-hud kbd {
+  padding: 2px 5px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(0, 0, 0, .68);
+  color: #c8d4d8;
+  font-size: .52rem;
+}
+
+.weapon-label {
+  color: #b7c2c5;
+}
+
+.weapon-shots {
+  justify-self: end;
+  color: #82b6c7;
+}
+
+.weapon-status {
+  grid-column: 1 / -1;
+  padding-top: 3px;
+  border-top: 1px solid rgba(255, 255, 255, .07);
+  color: #758287;
+  font-size: .49rem;
+}
+
+.weapon-hud.equipped {
+  border-color: rgba(64, 179, 232, .44);
+  box-shadow: 0 0 22px rgba(20, 131, 190, .14), 0 8px 28px rgba(0, 0, 0, .4);
+}
+
+.weapon-hud.equipped .weapon-status {
+  color: #a6d9e8;
+}
+
+.weapon-hud.target-ready {
+  border-color: rgba(86, 222, 255, .82);
+  box-shadow: 0 0 24px rgba(35, 180, 255, .28), inset 0 0 18px rgba(21, 125, 185, .08);
+}
+
+.weapon-hud.target-ready .weapon-status,
+.weapon-hud.target-ready .weapon-shots {
+  color: #b9f3ff;
+  text-shadow: 0 0 8px rgba(77, 211, 255, .72);
+}
+
+.weapon-hud.empty {
+  border-color: rgba(158, 55, 66, .35);
+}
+
+.weapon-hud.empty .weapon-shots,
+.weapon-hud.empty .weapon-status {
+  color: #a65d65;
+}
+
+.crosshair.stun-ready span {
+  background: #83e9ff;
+  box-shadow: 0 0 8px #168cff, 0 0 16px rgba(22, 140, 255, .7);
+}
+
 .danger-message {
   position: fixed;
   z-index: 9;
@@ -533,6 +615,13 @@ body.consumed #end-title {
 }
 
 @media (max-width: 840px) {
+  .weapon-hud {
+    right: 14px;
+    bottom: 14px;
+    min-width: 168px;
+    padding: 7px 8px;
+  }
+
   .hud {
     grid-template-columns: 1fr auto;
     gap: 12px;
