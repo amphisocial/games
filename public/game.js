@@ -117,6 +117,13 @@ let stalkRelocationTimer = 3.8 + randomSeedDelay() * 0.55;
 let roarTimer = 2.1 + randomSeedDelay() * 0.5;
 let phraseTimer = 8.8 + randomSeedDelay() * 1.2;
 let entityVoiceActive = false;
+let lastWhisperLineIndex = -1;
+
+const MONSTER_WHISPERS = [
+  { spoken: 'I see you', display: 'I  SEE  YOU' },
+  { spoken: 'Do you know what happened to me?', display: 'DO YOU KNOW WHAT HAPPENED TO ME?' },
+  { spoken: 'I am hungry', display: 'I  AM  HUNGRY' },
+];
 
 function randomSeedDelay() {
   return Math.random() * 6;
@@ -214,6 +221,41 @@ function bfsDistances(grid, source) {
     }
   }
   return distances;
+}
+
+function findCellPath(grid, source, destination) {
+  const queue = [source];
+  let head = 0;
+  const previous = new Int32Array(GRID_SIZE * GRID_SIZE);
+  previous.fill(-1);
+  const sourceKey = source.y * GRID_SIZE + source.x;
+  const destinationKey = destination.y * GRID_SIZE + destination.x;
+  previous[sourceKey] = sourceKey;
+
+  while (head < queue.length) {
+    const current = queue[head++];
+    if (current.x === destination.x && current.y === destination.y) break;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = current.x + dx;
+      const ny = current.y + dy;
+      if (grid[ny]?.[nx] !== 0) continue;
+      const nextKey = ny * GRID_SIZE + nx;
+      if (previous[nextKey] !== -1) continue;
+      previous[nextKey] = current.y * GRID_SIZE + current.x;
+      queue.push({ x: nx, y: ny });
+    }
+  }
+
+  if (previous[destinationKey] === -1) return [source];
+  const path = [];
+  let cursor = destinationKey;
+  while (cursor !== sourceKey) {
+    path.push({ x: cursor % GRID_SIZE, y: Math.floor(cursor / GRID_SIZE) });
+    cursor = previous[cursor];
+  }
+  path.push(source);
+  path.reverse();
+  return path;
 }
 
 function findFarthestCell(distances, exclusions = new Set()) {
@@ -672,6 +714,112 @@ function placeCabins() {
   });
 }
 
+function createArrowShapeGeometry() {
+  const shape = new THREE.Shape();
+  shape.moveTo(-1.05, -0.18);
+  shape.lineTo(0.25, -0.18);
+  shape.lineTo(0.25, -0.48);
+  shape.lineTo(1.12, 0);
+  shape.lineTo(0.25, 0.48);
+  shape.lineTo(0.25, 0.18);
+  shape.lineTo(-1.05, 0.18);
+  shape.closePath();
+  return new THREE.ShapeGeometry(shape);
+}
+
+function buildExitRouteArrows() {
+  const route = findCellPath(maze, startCell, exitCell);
+  if (route.length < 2) return;
+
+  const arrowGeometry = createArrowShapeGeometry();
+  const arrowMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff1b13,
+    transparent: true,
+    opacity: 0.92,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const glowMaterial = new THREE.MeshBasicMaterial({
+    color: 0x8e0000,
+    transparent: true,
+    opacity: 0.24,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    toneMapped: false,
+  });
+
+  const arrowGroup = new THREE.Group();
+  arrowGroup.name = 'exit-route-arrows';
+  let placed = 0;
+
+  for (let index = 2; index < route.length - 1; index += 1) {
+    const previous = route[index - 1];
+    const current = route[index];
+    const next = route[index + 1];
+    const direction = { x: next.x - current.x, y: next.y - current.y };
+    const priorDirection = { x: current.x - previous.x, y: current.y - previous.y };
+    const isTurn = direction.x !== priorDirection.x || direction.y !== priorDirection.y;
+    if (!isTurn && index % 4 !== 0) continue;
+
+    const sideCandidates = [
+      { x: -direction.y, y: direction.x },
+      { x: direction.y, y: -direction.x },
+    ];
+    if (random() < 0.5) sideCandidates.reverse();
+
+    const wallSide = sideCandidates.find((side) => maze[current.y + side.y]?.[current.x + side.x] === 1);
+    if (!wallSide) continue;
+
+    const wallCell = { x: current.x + wallSide.x, y: current.y + wallSide.y };
+    const wallWorld = worldFromCell(wallCell);
+    const normal = new THREE.Vector3(-wallSide.x, 0, -wallSide.y);
+    const routeDirection = new THREE.Vector3(direction.x, 0, direction.y).normalize();
+    const rotationY = Math.atan2(normal.x, normal.z);
+    const localRight = new THREE.Vector3(Math.cos(rotationY), 0, -Math.sin(rotationY));
+    const pointsRight = routeDirection.dot(localRight) >= 0;
+
+    const mount = new THREE.Group();
+    mount.position.set(
+      wallWorld.x + normal.x * (CELL_SIZE / 2 + 0.035),
+      2.15 + (random() - 0.5) * 0.38,
+      wallWorld.z + normal.z * (CELL_SIZE / 2 + 0.035),
+    );
+    mount.rotation.y = rotationY;
+
+    const glow = new THREE.Mesh(arrowGeometry, glowMaterial);
+    glow.scale.set(1.25, 1.35, 1);
+    glow.position.z = 0.004;
+    glow.rotation.z = (pointsRight ? 0 : Math.PI) + (random() - 0.5) * 0.08;
+    mount.add(glow);
+
+    const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+    arrow.scale.set(0.98 + random() * 0.12, 0.92 + random() * 0.1, 1);
+    arrow.position.z = 0.012;
+    arrow.rotation.z = (pointsRight ? 0 : Math.PI) + (random() - 0.5) * 0.06;
+    arrow.renderOrder = 8;
+    mount.add(arrow);
+
+    // Uneven drips make the arrows look painted rather than like clean UI markers.
+    for (let dripIndex = 0; dripIndex < 2; dripIndex += 1) {
+      const drip = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.045 + random() * 0.035, 0.18 + random() * 0.28),
+        arrowMaterial,
+      );
+      drip.position.set(-0.35 + random() * 0.7, -0.3 - random() * 0.12, 0.014);
+      drip.renderOrder = 8;
+      mount.add(drip);
+    }
+
+    arrowGroup.add(mount);
+    placed += 1;
+  }
+
+  arrowGroup.userData.arrowCount = placed;
+  root.dataset.routeArrows = String(placed);
+  scene.add(arrowGroup);
+}
+
 function buildExit() {
   const position = worldFromCell(exitCell);
   const abyssMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide });
@@ -1084,6 +1232,8 @@ class ProceduralAudio {
     this.screechCooldown = 0;
     this.musicTimer = 0.8;
     this.lastVoiceAt = 0;
+    this.cachedVoice = null;
+    this.voiceListenerAttached = false;
   }
 
   async start() {
@@ -1099,7 +1249,34 @@ class ProceduralAudio {
 
       this.startDrone();
     }
+    this.prepareVoice();
     if (this.context.state === 'suspended') await this.context.resume();
+  }
+
+  prepareVoice() {
+    if (!('speechSynthesis' in window)) return;
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const englishVoices = voices.filter((voice) => /^en/i.test(voice.lang));
+      const preferredPatterns = [
+        /Google UK English Male/i,
+        /Microsoft David/i,
+        /Microsoft Mark/i,
+        /Daniel/i,
+        /Arthur/i,
+        /male/i,
+      ];
+      this.cachedVoice = preferredPatterns
+        .map((pattern) => englishVoices.find((voice) => pattern.test(voice.name)))
+        .find(Boolean)
+        || englishVoices.sort((a, b) => a.name.localeCompare(b.name))[0]
+        || voices[0]
+        || null;
+    }
+    if (!this.voiceListenerAttached) {
+      window.speechSynthesis.addEventListener('voiceschanged', () => this.prepareVoice(), { once: true });
+      this.voiceListenerAttached = true;
+    }
   }
 
   startDrone() {
@@ -1246,24 +1423,56 @@ class ProceduralAudio {
     window.setTimeout(() => this.pulse(39, 0.75, 0.13 * strength, 'sawtooth'), 210);
   }
 
-  sayISeeYou() {
-    if (!this.context) return;
-    this.roar(0.38);
-    this.pulse(28, 1.8, 0.14, 'sawtooth');
-    if (!('speechSynthesis' in window)) return;
+  whisperPhrase(text) {
+    if (!this.context) return false;
+    if (!('speechSynthesis' in window)) return false;
     const now = performance.now();
-    if (now - this.lastVoiceAt < 9000) return;
+    if (now - this.lastVoiceAt < 7800) return false;
     this.lastVoiceAt = now;
+    this.prepareVoice();
+
+    const estimatedDuration = Math.max(2.2, Math.min(5.2, text.length * 0.095));
+    const audioNow = this.context.currentTime;
+
+    // A filtered breath layer gives every browser voice the same whispered monster texture.
+    const breathBuffer = this.context.createBuffer(1, Math.floor(this.context.sampleRate * estimatedDuration), this.context.sampleRate);
+    const breathData = breathBuffer.getChannelData(0);
+    for (let i = 0; i < breathData.length; i += 1) {
+      const fadeIn = Math.min(1, i / (this.context.sampleRate * 0.12));
+      const fadeOut = Math.min(1, (breathData.length - i) / (this.context.sampleRate * 0.35));
+      breathData[i] = (Math.random() * 2 - 1) * fadeIn * fadeOut;
+    }
+    const breath = this.context.createBufferSource();
+    breath.buffer = breathBuffer;
+    const breathFilter = this.context.createBiquadFilter();
+    breathFilter.type = 'bandpass';
+    breathFilter.frequency.value = 1850;
+    breathFilter.Q.value = 0.8;
+    const breathGain = this.context.createGain();
+    breathGain.gain.setValueAtTime(0.0001, audioNow);
+    breathGain.gain.exponentialRampToValueAtTime(0.055, audioNow + 0.08);
+    breathGain.gain.exponentialRampToValueAtTime(0.0001, audioNow + estimatedDuration);
+    breath.connect(breathFilter).connect(breathGain).connect(this.master);
+    breath.start(audioNow);
+
+    this.pulse(31, estimatedDuration, 0.085, 'sawtooth');
+    this.pulse(47, estimatedDuration * 0.82, 0.035, 'triangle');
+
+    if (this.musicBus) {
+      this.musicBus.gain.cancelScheduledValues(audioNow);
+      this.musicBus.gain.setValueAtTime(this.musicBus.gain.value, audioNow);
+      this.musicBus.gain.linearRampToValueAtTime(0.075, audioNow + 0.1);
+      this.musicBus.gain.linearRampToValueAtTime(0.23, audioNow + estimatedDuration + 0.6);
+    }
+
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance('I see you');
-    const voices = window.speechSynthesis.getVoices();
-    utterance.voice = voices.find((voice) => /male|david|daniel|mark|fred/i.test(voice.name) && /^en/i.test(voice.lang))
-      || voices.find((voice) => /^en/i.test(voice.lang))
-      || null;
-    utterance.rate = 0.42;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.voice = this.cachedVoice;
+    utterance.rate = 0.46;
     utterance.pitch = 0.08;
-    utterance.volume = 0.96;
+    utterance.volume = 0.68;
     window.speechSynthesis.speak(utterance);
+    return true;
   }
 
   fall() {
@@ -1368,6 +1577,15 @@ function updatePlayer(delta, nowSeconds) {
   flashlight.intensity = 90 + Math.sin(nowSeconds * 17.7) * 2.6 + (random() < 0.004 ? -12 : 0);
 }
 
+function pickMonsterWhisper() {
+  let index = Math.floor(random() * MONSTER_WHISPERS.length);
+  if (MONSTER_WHISPERS.length > 1 && index === lastWhisperLineIndex) {
+    index = (index + 1 + Math.floor(random() * (MONSTER_WHISPERS.length - 1))) % MONSTER_WHISPERS.length;
+  }
+  lastWhisperLineIndex = index;
+  return MONSTER_WHISPERS[index];
+}
+
 function updateEntity(delta, nowSeconds) {
   const entityPosition = entityParts.group.position;
 
@@ -1387,9 +1605,10 @@ function updateEntity(delta, nowSeconds) {
     roarTimer = 4.1 + random() * 5.2;
   }
   if (phraseTimer <= 0) {
-    audio.sayISeeYou();
-    showDanger('I  SEE  YOU', 2.8, true);
-    phraseTimer = 10 + random() * 10;
+    const whisper = pickMonsterWhisper();
+    const spoken = audio.whisperPhrase(whisper.spoken);
+    if (spoken) showDanger(whisper.display, whisper.spoken.length > 18 ? 4.2 : 2.8, true);
+    phraseTimer = 10 + random() * 11;
   }
 
   entityPathTimer -= delta;
@@ -1594,6 +1813,7 @@ function setupGameWorld() {
   buildMazeMeshes();
   placeCabins();
   buildExit();
+  buildExitRouteArrows();
 
   const startPosition = worldFromCell(startCell);
   camera.position.set(startPosition.x, EYE_HEIGHT, startPosition.z);
