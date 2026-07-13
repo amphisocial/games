@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#050505" />
+    <title>Verity</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="login-page">
+    <div class="grain" aria-hidden="true"></div>
+    <main class="login-shell">
+      <section class="login-card" aria-labelledby="game-title">
+        <p class="eyebrow">A FIRST-PERSON HORROR EXPERIENCE</p>
+        <h1 id="game-title">VERITY</h1>
+        <p class="login-copy">
+          Somewhere inside the timber maze, a hole leads out. Verity already knows you are here.
+        </p>
+
+        <div class="warning-strip">HEADPHONES RECOMMENDED · FLASHING LIGHTS · INTENSE CHASES</div>
+
+        <div id="google-signin" class="google-signin" aria-label="Google Sign-In"></div>
+        <button id="dev-signin" class="secondary-button hidden" type="button">Enter local development mode</button>
+        <p id="login-status" class="login-status" role="status">Loading sign-in…</p>
+
+        <div class="control-preview" aria-label="Game controls">
+          <span><kbd>W A S D</kbd> Move</span>
+          <span><kbd>Mouse</kbd> Look</span>
+          <span><kbd>W + Shift</kbd> Sprint</span>
+          <span><kbd>Esc</kbd> Pause</span>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="/login.js" defer></script>
+  </body>
+</html>

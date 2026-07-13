@@ -1,0 +1,28 @@
+{
+  "name": "verity-horror-game",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node --watch server.js",
+    "check": "node --check server.js && node --check public/login.js && node --input-type=module --check < public/game.js",
+    "smoke:browser": "node scripts/smoke-browser.cjs"
+  },
+  "description": "Browser-based first-person horror maze game with Google Sign-In",
+  "dependencies": {
+    "cookie-session": "^2.1.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "google-auth-library": "^10.9.0",
+    "helmet": "^8.3.0",
+    "three": "^0.185.1"
+  },
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "puppeteer-core": "^25.3.0"
+  }
+}
