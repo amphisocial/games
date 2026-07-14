@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#020202" />
+    <title>Level 1 — The Timber Figure</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/three.module.js",
+          "three/addons/": "/vendor/three/addons/"
+        }
+      }
+    </script>
+  </head>
+  <body class="game-page level-one-page">
+    <div id="game-root" aria-label="The Timber Figure game canvas"></div>
+    <div id="grain" class="grain game-grain" aria-hidden="true"></div>
+    <div id="damage-vignette" aria-hidden="true"></div>
+
+    <header id="hud" class="hud">
+      <div class="hud-left">
+        <p class="objective-label">OBJECTIVE</p>
+        <p id="objective-text" class="objective-text">Find the hole. Do not let the Timber Figure touch you.</p>
+      </div>
+      <div class="hud-center" aria-label="Stamina">
+        <div class="stamina-heading">
+          <span>STAMINA</span>
+          <span id="stamina-seconds">10.0s</span>
+        </div>
+        <div class="stamina-track"><div id="stamina-fill" class="stamina-fill"></div></div>
+        <p id="stamina-state" class="stamina-state">W + SHIFT TO SPRINT</p>
+        <div class="finish-progress" aria-label="Distance progress to the exit">
+          <div class="finish-progress-heading">
+            <span>TO THE EXIT</span>
+            <span id="progress-percent">0%</span>
+          </div>
+          <div class="finish-progress-track"><div id="progress-fill" class="finish-progress-fill"></div></div>
+        </div>
+      </div>
+      <div class="hud-right">
+        <div id="user-badge" class="user-badge"></div>
+        <button id="pause-button" class="icon-button" type="button" aria-label="Pause game">Ⅱ</button>
+      </div>
+    </header>
+
+    <div id="crosshair" class="crosshair" aria-hidden="true"><span></span><span></span></div>
+    <div id="danger-message" class="danger-message" role="status"></div>
+
+    <aside id="weapon-hud" class="weapon-hud" aria-live="polite">
+      <span class="weapon-label"><kbd>E</kbd> STUN GUN</span>
+      <span id="weapon-shots" class="weapon-shots">2 / 2 SHOTS</span>
+      <span id="weapon-status" class="weapon-status">E&nbsp;&nbsp;EQUIP</span>
+    </aside>
+
+    <section id="start-overlay" class="overlay visible" aria-labelledby="start-title">
+      <div class="overlay-panel">
+        <p class="eyebrow">LEVEL 1 · THE TIMBER MAZE</p>
+        <h1 id="start-title">IT HEARD YOU ARRIVE.</h1>
+        <p>
+          Search the maze and the cramped wooden houses for the final hole. Follow the red arrows painted on the walls.
+          The Timber Figure never stops hunting, and sprinting lasts ten seconds before exhaustion.
+        </p>
+        <div class="overlay-controls">
+          <span><kbd>W A S D</kbd> Move</span>
+          <span><kbd>Mouse</kbd> Look</span>
+          <span><kbd>W + Shift</kbd> Sprint</span>
+          <span><kbd>E</kbd> Equip stun gun</span>
+          <span><kbd>Space</kbd> Fire stun beam</span>
+          <span><kbd>Esc</kbd> Pause</span>
+        </div>
+        <button id="enter-button" class="primary-button" type="button">ENTER THE MAZE</button>
+      </div>
+    </section>
+
+    <section id="pause-overlay" class="overlay" aria-labelledby="pause-title">
+      <div class="overlay-panel compact">
+        <p class="eyebrow">GAME PAUSED</p>
+        <h2 id="pause-title">THE TIMBER FIGURE IS WAITING.</h2>
+        <button id="resume-button" class="primary-button" type="button">RESUME</button>
+        <button id="restart-pause-button" class="secondary-button" type="button">Restart run</button>
+        <button id="logout-button" class="text-button" type="button">Sign out</button>
+      </div>
+    </section>
+
+    <section id="end-overlay" class="overlay" aria-live="assertive">
+      <div class="overlay-panel end-panel">
+        <p id="end-kicker" class="eyebrow"></p>
+        <h2 id="end-title"></h2>
+        <p id="end-copy"></p>
+        <button id="restart-button" class="primary-button" type="button">ENTER AGAIN</button>
+      </div>
+    </section>
+
+    <script type="module" src="/level1.js"></script>
+  </body>
+</html>

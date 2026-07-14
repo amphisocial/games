@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#160605" />
+    <title>Level 3 — The Ash Demon</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/three.module.js",
+          "three/addons/": "/vendor/three/addons/"
+        }
+      }
+    </script>
+  </head>
+  <body class="game-page level-three-page">
+    <div id="game-root" aria-label="Level 3 coliseum boss battle"></div>
+    <div class="grain game-grain" aria-hidden="true"></div>
+    <div id="damage-vignette" aria-hidden="true"></div>
+
+    <header id="hud" class="hud boss-hud">
+      <div class="hud-left">
+        <p class="objective-label">LEVEL 3 · OBJECTIVE</p>
+        <p class="objective-text">Defeat the Ash Demon. Keep moving.</p>
+      </div>
+      <div class="hud-center">
+        <div class="stamina-heading"><span>STAMINA</span><span id="stamina-seconds">10.0s</span></div>
+        <div class="stamina-track"><div id="stamina-fill" class="stamina-fill"></div></div>
+        <p id="stamina-state" class="stamina-state">W + SHIFT TO SPRINT</p>
+      </div>
+      <div class="hud-right">
+        <div id="user-badge" class="user-badge"></div>
+        <button id="pause-button" class="icon-button" type="button" aria-label="Pause game">Ⅱ</button>
+      </div>
+    </header>
+
+    <section class="boss-health-panel" aria-label="Ash Demon health">
+      <div class="boss-health-heading"><span>THE ASH DEMON</span><span id="boss-health-text">100 / 100</span></div>
+      <div class="boss-health-track"><div id="boss-health-fill" class="boss-health-fill"></div></div>
+    </section>
+
+    <aside class="minigun-hud" aria-live="polite">
+      <span class="weapon-label">MINIGUN</span>
+      <span id="minigun-status" class="weapon-status">HOLD SPACE OR LEFT CLICK · RAPID FIRE</span>
+      <span id="hit-count" class="weapon-shots">0 / 100 HITS</span>
+    </aside>
+
+    <div id="crosshair" class="crosshair" aria-hidden="true"><span></span><span></span></div>
+    <div id="danger-message" class="danger-message" role="status"></div>
+
+    <section id="start-overlay" class="overlay visible" aria-labelledby="start-title">
+      <div class="overlay-panel">
+        <p class="eyebrow">LEVEL 3 · THE COLOSSEUM</p>
+        <h1 id="start-title">THE VOID GAVE YOU A BIGGER GUN.</h1>
+        <p>
+          The stun gun is gone. Your new minigun fires continuously while you hold Space or the left mouse button.
+          The Ash Demon takes exactly one hundred successful hits to kill.
+        </p>
+        <div class="overlay-controls">
+          <span><kbd>W A S D</kbd> Move</span>
+          <span><kbd>Mouse</kbd> Look</span>
+          <span><kbd>W + Shift</kbd> Sprint</span>
+          <span><kbd>Hold Space</kbd> Rapid fire</span>
+          <span><kbd>Left Mouse</kbd> Rapid fire</span>
+          <span><kbd>Esc</kbd> Pause</span>
+        </div>
+        <button id="enter-button" class="primary-button" type="button">ENTER THE COLOSSEUM</button>
+      </div>
+    </section>
+
+    <section id="pause-overlay" class="overlay" aria-labelledby="pause-title">
+      <div class="overlay-panel compact">
+        <p class="eyebrow">GAME PAUSED</p>
+        <h2 id="pause-title">THE ASH DEMON IS STILL THERE.</h2>
+        <button id="resume-button" class="primary-button" type="button">RESUME</button>
+        <button id="restart-pause-button" class="secondary-button" type="button">Restart level</button>
+        <a class="text-button campaign-link" href="/game">Campaign menu</a>
+      </div>
+    </section>
+
+    <section id="end-overlay" class="overlay" aria-live="assertive">
+      <div class="overlay-panel end-panel">
+        <p id="end-kicker" class="eyebrow"></p>
+        <h2 id="end-title"></h2>
+        <p id="end-copy"></p>
+        <button id="restart-button" class="primary-button" type="button">PLAY AGAIN</button>
+        <a class="text-button campaign-link" href="/game">Campaign menu</a>
+      </div>
+    </section>
+
+    <script type="module" src="/level3.js"></script>
+  </body>
+</html>
