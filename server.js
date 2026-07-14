@@ -170,7 +170,15 @@ app.get('/login.js', (_req, res) => res.sendFile(path.join(publicDir, 'login.js'
 app.get('/favicon.svg', (_req, res) => res.sendFile(path.join(publicDir, 'favicon.svg')));
 
 app.get('/game', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'game.html')));
-app.get('/game.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'game.js')));
+app.get('/campaign.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'campaign.js')));
+app.get('/level/1', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'level1.html')));
+app.get('/level1.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'level1.js')));
+app.get('/level/2', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'level2.html')));
+app.get('/level2.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'level2.js')));
+app.get('/level/3', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'level3.html')));
+app.get('/level3.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'level3.js')));
+// Backward-compatible route for older bookmarks/builds.
+app.get('/game.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'level1.js')));
 
 app.use(
   '/vendor/three/addons',
@@ -193,5 +201,5 @@ app.use((error, _req, res, _next) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Verity is listening on port ${PORT} (${NODE_ENV}).`);
+  console.log(`The Timber Figure campaign is listening on port ${PORT} (${NODE_ENV}).`);
 });
