@@ -969,106 +969,279 @@ function buildExit() {
 
 function makeEntity() {
   const group = new THREE.Group();
-  const pale = new THREE.MeshStandardMaterial({ color: 0xe2e4df, emissive: 0x252a29, emissiveIntensity: 0.18, roughness: 0.96 });
-  const paleShadow = new THREE.MeshStandardMaterial({ color: 0xb8bfba, emissive: 0x111817, emissiveIntensity: 0.12, roughness: 1 });
-  const tendon = new THREE.MeshStandardMaterial({ color: 0x9a4b4f, emissive: 0x26070a, emissiveIntensity: 0.35, roughness: 0.88 });
-  const mouthMaterial = new THREE.MeshStandardMaterial({ color: 0x130205, emissive: 0x240005, emissiveIntensity: 0.3, roughness: 1 });
-  const eyeSocketMaterial = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 1 });
-  const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0xf2f8f6, emissive: 0xffffff, emissiveIntensity: 1.25 });
-  const boneMaterial = new THREE.MeshStandardMaterial({ color: 0xf0e9de, roughness: 0.45 });
 
-  const pelvis = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 1.0, 5, 8), paleShadow);
+  const skin = new THREE.MeshStandardMaterial({
+    color: 0xd9d5d7,
+    emissive: 0x1a1c20,
+    emissiveIntensity: 0.12,
+    roughness: 0.98,
+    metalness: 0.01,
+  });
+  const skinShadow = new THREE.MeshStandardMaterial({
+    color: 0xb7b1b4,
+    emissive: 0x0e1012,
+    emissiveIntensity: 0.08,
+    roughness: 1,
+    metalness: 0.01,
+  });
+  const flesh = new THREE.MeshStandardMaterial({
+    color: 0x6a2624,
+    emissive: 0x1a0606,
+    emissiveIntensity: 0.22,
+    roughness: 0.9,
+    metalness: 0.01,
+  });
+  const darkHand = new THREE.MeshStandardMaterial({
+    color: 0x552726,
+    emissive: 0x120404,
+    emissiveIntensity: 0.12,
+    roughness: 0.86,
+    metalness: 0.01,
+  });
+  const mouthMaterial = new THREE.MeshStandardMaterial({
+    color: 0x040405,
+    emissive: 0x000000,
+    roughness: 1,
+    metalness: 0,
+  });
+  const eyeSocketMaterial = new THREE.MeshStandardMaterial({ color: 0x0b0b0c, roughness: 1 });
+  const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0xf8f8f8, emissive: 0xffffff, emissiveIntensity: 0.85, roughness: 0.2 });
+  const boneMaterial = new THREE.MeshStandardMaterial({ color: 0xece8e2, roughness: 0.58, metalness: 0.01 });
+
+  const pelvis = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.72, 4, 7), skinShadow);
+  pelvis.scale.set(0.9, 1, 0.8);
   pelvis.position.set(0, 3.35, 0);
   group.add(pelvis);
 
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.48, 4.5, 6, 10), pale);
-  torso.scale.set(0.72, 1.0, 0.52);
-  torso.position.set(0, 6.0, 0);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 3.95, 6, 10), skin);
+  torso.scale.set(0.7, 1.02, 0.52);
+  torso.position.set(0, 5.95, 0);
   group.add(torso);
 
   const ribs = new THREE.Group();
-  ribs.position.set(0, 6.0, 0.35);
+  ribs.position.set(0, 6.05, 0.28);
   group.add(ribs);
-  for (let i = 0; i < 7; i += 1) {
-    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.45 - i * 0.025, 0.035, 5, 12, Math.PI * 1.15), paleShadow);
-    rib.position.y = 1.05 - i * 0.34;
-    rib.rotation.set(Math.PI / 2, 0, Math.PI * 0.42);
-    rib.scale.y = 0.55;
+  for (let i = 0; i < 8; i += 1) {
+    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.47 - i * 0.03, 0.026, 5, 14, Math.PI * 1.25), skinShadow);
+    rib.position.y = 1.18 - i * 0.31;
+    rib.rotation.set(Math.PI / 2, 0, Math.PI * 0.4);
+    rib.scale.y = 0.46;
     ribs.add(rib);
   }
 
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.22, 1.75, 7), pale);
-  neck.position.set(0, 8.72, 0);
+  const sternum = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.62, 0.12), skinShadow);
+  sternum.position.set(0, 6.0, 0.36);
+  group.add(sternum);
+
+  const hipsNotch = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.12), skinShadow);
+  hipsNotch.position.set(0, 4.12, 0.2);
+  group.add(hipsNotch);
+
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 0.92, 7), skin);
+  neck.position.set(0, 8.45, 0);
   group.add(neck);
 
   const headPivot = new THREE.Group();
-  headPivot.position.set(0, 9.72, 0);
+  headPivot.position.set(0, 9.18, 0.05);
   group.add(headPivot);
 
-  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.46, 14, 11), pale);
-  skull.scale.set(0.75, 1.3, 0.82);
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.52, 16, 12), skin);
+  skull.scale.set(0.82, 0.95, 0.8);
   headPivot.add(skull);
 
-  const eyes=[]; const pupils=[];
-  for (const x of [-0.14,0.14]) {
-    const eye=new THREE.Mesh(new THREE.SphereGeometry(0.075,9,7),eyeSocketMaterial);
-    eye.position.set(x,0.16,-0.39); headPivot.add(eye); eyes.push(eye);
-    const pupil=new THREE.Mesh(new THREE.SphereGeometry(0.018,7,6),pupilMaterial);
-    pupil.position.set(x,0.16,-0.455); headPivot.add(pupil); pupils.push(pupil);
+  const brow = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.18, 0.12), skinShadow);
+  brow.position.set(0, 0.18, 0.34);
+  headPivot.add(brow);
+
+  const eyes = [];
+  const pupils = [];
+  for (const x of [-0.15, 0.15]) {
+    const socket = new THREE.Mesh(new THREE.SphereGeometry(0.082, 10, 8), eyeSocketMaterial);
+    socket.scale.set(1.0, 1.1, 0.58);
+    socket.position.set(x, 0.18, 0.36);
+    headPivot.add(socket);
+    eyes.push(socket);
+
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 6), pupilMaterial);
+    pupil.position.set(x, 0.18, 0.435);
+    headPivot.add(pupil);
+    pupils.push(pupil);
   }
 
-  const upperMouth = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.16,0.38),mouthMaterial);
-  upperMouth.position.set(0,-0.22,-0.36); headPivot.add(upperMouth);
+  const mouthRim = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 1.02, 4, 12), flesh);
+  mouthRim.scale.set(1.15, 1.3, 0.45);
+  mouthRim.position.set(0, -0.12, 0.33);
+  mouthRim.rotation.z = Math.PI / 2;
+  headPivot.add(mouthRim);
+
+  const upperMouth = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.96, 4, 10), mouthMaterial);
+  upperMouth.scale.set(1.0, 1.22, 0.36);
+  upperMouth.position.set(0, -0.12, 0.39);
+  upperMouth.rotation.z = Math.PI / 2;
+  headPivot.add(upperMouth);
 
   const jawPivot = new THREE.Group();
-  jawPivot.position.set(0,-0.24,-0.18); headPivot.add(jawPivot);
-  const jawBone = new THREE.Mesh(new THREE.BoxGeometry(0.46,5.9,0.32),paleShadow);
-  jawBone.position.set(0,-2.95,-0.18); jawPivot.add(jawBone);
-  const jawFlesh = new THREE.Mesh(new THREE.BoxGeometry(0.25,5.55,0.16),tendon);
-  jawFlesh.position.set(0,-2.82,-0.38); jawPivot.add(jawFlesh);
-  const jawTip = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.38,0.48),mouthMaterial);
-  jawTip.position.set(0,-5.86,-0.18); jawPivot.add(jawTip);
+  jawPivot.position.set(0, -0.34, 0.27);
+  headPivot.add(jawPivot);
+  jawPivot.rotation.x = 0.02;
 
-  const upperTeeth=[]; const lowerTeeth=[];
-  [-0.18,-0.09,0,0.09,0.18].forEach((x,index)=>{
-    const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.027,index===0||index===4?0.24:0.16,6),boneMaterial);
-    tooth.rotation.x=Math.PI; tooth.position.set(x,-0.3,-0.48); headPivot.add(tooth); upperTeeth.push(tooth);
-    const lower=new THREE.Mesh(new THREE.ConeGeometry(0.025,index===0||index===4?0.21:0.14,6),boneMaterial);
-    lower.position.set(x,-5.72,-0.42); jawPivot.add(lower); lowerTeeth.push(lower);
+  const jawStem = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 2.85, 7), skinShadow);
+  jawStem.position.set(0, -1.42, 0.03);
+  jawPivot.add(jawStem);
+
+  const jawCavityRim = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 1.5, 4, 10), flesh);
+  jawCavityRim.scale.set(1.02, 1.45, 0.34);
+  jawCavityRim.position.set(0, -1.55, 0.06);
+  jawCavityRim.rotation.z = Math.PI / 2;
+  jawPivot.add(jawCavityRim);
+
+  const jawCavity = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 1.42, 4, 10), mouthMaterial);
+  jawCavity.scale.set(0.92, 1.52, 0.28);
+  jawCavity.position.set(0, -1.58, 0.12);
+  jawCavity.rotation.z = Math.PI / 2;
+  jawPivot.add(jawCavity);
+
+  const jawTip = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.18, 0.28), darkHand);
+  jawTip.position.set(0, -3.0, 0.04);
+  jawPivot.add(jawTip);
+
+  const upperTeeth = [];
+  const lowerTeeth = [];
+  [-0.12, -0.06, 0, 0.06, 0.12].forEach((x, index) => {
+    const upper = new THREE.Mesh(new THREE.ConeGeometry(0.022, index === 0 || index === 4 ? 0.2 : 0.12, 5), boneMaterial);
+    upper.rotation.x = Math.PI;
+    upper.position.set(x, -0.36, 0.42);
+    headPivot.add(upper);
+    upperTeeth.push(upper);
+
+    const lower = new THREE.Mesh(new THREE.ConeGeometry(0.02, index === 0 || index === 4 ? 0.19 : 0.11, 5), boneMaterial);
+    lower.position.set(x, -3.02, 0.15);
+    jawPivot.add(lower);
+    lowerTeeth.push(lower);
   });
 
   function createArm(x) {
-    const pivot=new THREE.Group(); pivot.position.set(x,7.7,0); group.add(pivot);
-    const upper=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.14,3.1,7),pale); upper.position.y=-1.55; pivot.add(upper);
-    const lowerPivot=new THREE.Group(); lowerPivot.position.y=-3.05; pivot.add(lowerPivot);
-    const lower=new THREE.Mesh(new THREE.CylinderGeometry(0.065,0.1,3.35,7),paleShadow); lower.position.y=-1.68; lowerPivot.add(lower);
-    const hand=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.16,0.5),pale); hand.position.set(0,-3.34,-0.12); lowerPivot.add(hand);
-    return {pivot,lowerPivot};
-  }
-  function createLeg(x) {
-    const pivot=new THREE.Group(); pivot.position.set(x,3.48,0); group.add(pivot);
-    const upper=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.18,2.4,7),pale); upper.position.y=-1.2; pivot.add(upper);
-    const lowerPivot=new THREE.Group(); lowerPivot.position.y=-2.36; pivot.add(lowerPivot);
-    const lower=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.13,2.5,7),paleShadow); lower.position.y=-1.25; lowerPivot.add(lower);
-    const foot=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.16,0.72),paleShadow); foot.position.set(0,-2.48,-0.18); lowerPivot.add(foot);
-    return {pivot,lowerPivot,foot};
-  }
-  const leftArm=createArm(-0.55), rightArm=createArm(0.55), leftLeg=createLeg(-0.24), rightLeg=createLeg(0.24);
+    const pivot = new THREE.Group();
+    pivot.position.set(x, 7.55, 0.02);
+    group.add(pivot);
 
-  group.traverse(child=>{if(child.isMesh){child.castShadow=true;child.receiveShadow=true;}});
-  const aura=new THREE.PointLight(0xb8f5ff,2.8,10,2); aura.position.set(0,8.5,0); group.add(aura);
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 2.6, 7), skin);
+    upper.position.y = -1.3;
+    pivot.add(upper);
 
-  const electricField=new THREE.Group(); electricField.visible=false; group.add(electricField);
-  const electricLines=[];
-  for(let arcIndex=0;arcIndex<9;arcIndex+=1){
-    const arcGeometry=new THREE.BufferGeometry(); arcGeometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(15),3));
-    const arcMaterial=new THREE.LineBasicMaterial({color:arcIndex%2===0?0x72e6ff:0x237dff,transparent:true,opacity:0.82,blending:THREE.AdditiveBlending,depthWrite:false});
-    const arc=new THREE.Line(arcGeometry,arcMaterial); arc.frustumCulled=false; electricField.add(arc); electricLines.push(arc);
+    const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), skinShadow);
+    elbow.position.y = -2.58;
+    pivot.add(elbow);
+
+    const lowerPivot = new THREE.Group();
+    lowerPivot.position.y = -2.58;
+    pivot.add(lowerPivot);
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.095, 3.25, 7), skinShadow);
+    lower.position.y = -1.62;
+    lowerPivot.add(lower);
+
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.34), darkHand);
+    hand.position.set(0, -3.24, 0.02);
+    lowerPivot.add(hand);
+
+    for (const fingerX of [-0.1, -0.03, 0.03, 0.1]) {
+      const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, 0.52, 5), darkHand);
+      finger.position.set(fingerX, -3.42, 0.08 + Math.abs(fingerX) * 0.18);
+      finger.rotation.x = Math.PI / 2 - 0.18;
+      finger.rotation.z = fingerX * 1.8;
+      lowerPivot.add(finger);
+    }
+
+    return { pivot, lowerPivot };
   }
-  const stunLight=new THREE.PointLight(0x33aaff,0,13,2); stunLight.position.set(0,5.5,0); group.add(stunLight);
+
+  function createLeg(x, sideSign) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, 3.55, 0.02);
+    group.add(pivot);
+
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 2.75, 7), skin);
+    upper.position.y = -1.38;
+    pivot.add(upper);
+
+    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), skinShadow);
+    knee.position.y = -2.73;
+    pivot.add(knee);
+
+    const lowerPivot = new THREE.Group();
+    lowerPivot.position.y = -2.72;
+    pivot.add(lowerPivot);
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.11, 2.95, 7), skinShadow);
+    lower.position.y = -1.48;
+    lowerPivot.add(lower);
+
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.14, 0.62), skinShadow);
+    foot.position.set(0, -2.94, 0.16);
+    foot.rotation.y = sideSign * 0.08;
+    lowerPivot.add(foot);
+
+    return { pivot, lowerPivot, foot };
+  }
+
+  const leftArm = createArm(-0.72);
+  const rightArm = createArm(0.72);
+  const leftLeg = createLeg(-0.18, -1);
+  const rightLeg = createLeg(0.22, 1);
+
+  group.traverse((child) => {
+    if (child.isMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+
+  const aura = new THREE.PointLight(0xc3f2ff, 2.8, 10, 2);
+  aura.position.set(0, 8.3, 0.25);
+  group.add(aura);
+
+  const electricField = new THREE.Group();
+  electricField.visible = false;
+  group.add(electricField);
+  const electricLines = [];
+  for (let arcIndex = 0; arcIndex < 9; arcIndex += 1) {
+    const arcGeometry = new THREE.BufferGeometry();
+    arcGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(15), 3));
+    const arcMaterial = new THREE.LineBasicMaterial({
+      color: arcIndex % 2 === 0 ? 0x72e6ff : 0x237dff,
+      transparent: true,
+      opacity: 0.82,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const arc = new THREE.Line(arcGeometry, arcMaterial);
+    arc.frustumCulled = false;
+    electricField.add(arc);
+    electricLines.push(arc);
+  }
+  const stunLight = new THREE.PointLight(0x33aaff, 0, 13, 2);
+  stunLight.position.set(0, 5.6, 0);
+  group.add(stunLight);
 
   scene.add(group);
-  return {group,torso,headPivot,jawPivot,leftArm,rightArm,leftLeg,rightLeg,eyes,pupils,upperTeeth,lowerTeeth,earRoots:[],redAura:aura,electricField,electricLines,stunLight};
+  return {
+    group,
+    torso,
+    headPivot,
+    jawPivot,
+    leftArm,
+    rightArm,
+    leftLeg,
+    rightLeg,
+    eyes,
+    pupils,
+    upperTeeth,
+    lowerTeeth,
+    earRoots: [],
+    redAura: aura,
+    electricField,
+    electricLines,
+    stunLight,
+  };
 }
 
 function nearestOpenCell(position) {
