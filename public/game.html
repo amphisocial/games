@@ -28,6 +28,12 @@
           <p>Playing from Level 1 continues automatically through all three levels.</p>
         </div>
 
+        <div class="content-tabs" role="tablist" aria-label="Game content">
+          <button id="levels-tab" class="content-tab active" type="button" role="tab" aria-selected="true">LEVELS</button>
+          <button id="gamemodes-tab" class="content-tab" type="button" role="tab" aria-selected="false">GAMEMODES</button>
+        </div>
+
+        <div id="levels-panel" class="content-panel" role="tabpanel" aria-labelledby="levels-tab">
         <div class="level-grid">
           <article class="level-card level-one-card">
             <div class="level-number">01</div>
@@ -55,6 +61,38 @@
             <span class="level-weapon">WEAPON · RAPID-FIRE MINIGUN</span>
             <a class="secondary-button level-button" href="/level/3">PLAY LEVEL 3</a>
           </article>
+        </div>
+        </div>
+
+        <div id="gamemodes-panel" class="content-panel hidden" role="tabpanel" aria-labelledby="gamemodes-tab">
+          <div class="gamemode-grid">
+            <article class="level-card gamemode-card bossfight-card">
+              <div class="level-number">MODE</div>
+              <p class="level-type">RANDOM BOSS ARENA</p>
+              <h3>Bossfight</h3>
+              <p>Face one of several randomly selected horror entities. Choose a minigun, assault rifle, or sword before the fight begins.</p>
+              <span class="level-weapon">CHOOSE YOUR WEAPON</span>
+              <a class="primary-button level-button" href="/mode/bossfight">ENTER BOSSFIGHT</a>
+            </article>
+
+            <article class="level-card gamemode-card monster-card">
+              <div class="level-number">MODE</div>
+              <p class="level-type">REVERSE HUNT</p>
+              <h3>Be the Monster</h3>
+              <p>Become the Timber Figure. Tower over the maze, track a terrified human, catch them, and feed.</p>
+              <span class="level-weapon">YOU ARE THE MONSTER</span>
+              <a class="secondary-button level-button" href="/mode/be-the-monster">BEGIN THE HUNT</a>
+            </article>
+
+            <article class="level-card gamemode-card onslaught-card">
+              <div class="level-number">MODE</div>
+              <p class="level-type">SPACESHIP SURVIVAL</p>
+              <h3>Dark Onslaught</h3>
+              <p>Hold an open spaceship hangar against waves of smaller entities. Each takes two shots. Kill 30 to survive.</p>
+              <span class="level-weapon">WEAPON · ASSAULT RIFLE</span>
+              <a class="secondary-button level-button" href="/mode/dark-onslaught">START ONSLAUGHT</a>
+            </article>
+          </div>
         </div>
 
         <button id="back-to-title" class="text-button" type="button">Back</button>

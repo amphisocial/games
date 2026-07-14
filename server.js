@@ -177,6 +177,12 @@ app.get('/level/2', requireAuth, (_req, res) => res.sendFile(path.join(publicDir
 app.get('/level2.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'level2.js')));
 app.get('/level/3', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'level3.html')));
 app.get('/level3.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'level3.js')));
+app.get('/mode/bossfight', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'bossfight.html')));
+app.get('/bossfight.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'bossfight.js')));
+app.get('/mode/be-the-monster', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'be-the-monster.html')));
+app.get('/be-the-monster.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'be-the-monster.js')));
+app.get('/mode/dark-onslaught', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'dark-onslaught.html')));
+app.get('/dark-onslaught.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'dark-onslaught.js')));
 // Backward-compatible route for older bookmarks/builds.
 app.get('/game.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'level1.js')));
 

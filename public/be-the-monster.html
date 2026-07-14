@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#120404" />
+  <title>Gamemode — Be the Monster</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" />
+  <script type="importmap">{"imports":{"three":"/vendor/three/three.module.js","three/addons/":"/vendor/three/addons/"}}</script>
+</head>
+<body class="game-page monster-mode-page">
+  <div id="game-root" aria-label="Be the Monster maze"></div>
+  <div class="grain game-grain" aria-hidden="true"></div>
+  <div id="monster-feed-vignette" aria-hidden="true"></div>
+  <header id="hud" class="hud"><div class="hud-left"><p class="objective-label">GAMEMODE · BE THE MONSTER</p><p class="objective-text">Find the human. Catch them. Feed.</p></div><div class="hud-center"><div class="stamina-heading"><span>SCENT</span><span id="scent-distance">SEARCHING</span></div><div class="stamina-track"><div id="scent-fill" class="stamina-fill"></div></div><p class="stamina-state">THE CLOSER YOU ARE, THE STRONGER THE SCENT</p></div><div class="hud-right"><button id="pause-button" class="icon-button" type="button">Ⅱ</button></div></header>
+  <div id="crosshair" class="crosshair" aria-hidden="true"><span></span><span></span></div><div id="danger-message" class="danger-message" role="status"></div>
+  <section id="start-overlay" class="overlay visible"><div class="overlay-panel"><p class="eyebrow">GAMEMODE · REVERSE HUNT</p><h1>YOU ARE THE TIMBER FIGURE.</h1><p>Your viewpoint towers above the maze walls. A human is trapped below and will run when you get close. Find them and get within reach to trigger the feeding jumpscare.</p><div class="overlay-controls"><span><kbd>W A S D</kbd> Move</span><span><kbd>Mouse</kbd> Look</span><span><kbd>Shift</kbd> Lunge</span><span><kbd>Esc</kbd> Pause</span></div><button id="enter-button" class="primary-button" type="button">BEGIN THE HUNT</button><a class="text-button campaign-link" href="/game">Back to menu</a></div></section>
+  <section id="pause-overlay" class="overlay"><div class="overlay-panel compact"><p class="eyebrow">HUNT PAUSED</p><h2>THE HUMAN IS STILL RUNNING.</h2><button id="resume-button" class="primary-button" type="button">RESUME</button><button id="restart-pause-button" class="secondary-button" type="button">Restart hunt</button><a class="text-button campaign-link" href="/game">Game menu</a></div></section>
+  <section id="end-overlay" class="overlay"><div class="overlay-panel end-panel"><p class="eyebrow">THE HUNT IS OVER</p><h2>YOU FED.</h2><p>The maze is quiet again.</p><button id="restart-button" class="primary-button" type="button">HUNT AGAIN</button><a class="text-button campaign-link" href="/game">Game menu</a></div></section>
+  <div id="feed-jumpscare" class="feed-jumpscare" aria-hidden="true"><div class="feed-jaw feed-jaw-top"></div><div class="feed-jaw feed-jaw-bottom"></div><div class="feed-text">FEEDING</div></div>
+  <script type="module" src="/be-the-monster.js"></script>
+</body>
+</html>

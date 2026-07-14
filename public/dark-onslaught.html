@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#020b12" />
+  <title>Gamemode — Dark Onslaught</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" />
+  <script type="importmap">{"imports":{"three":"/vendor/three/three.module.js","three/addons/":"/vendor/three/addons/"}}</script>
+</head>
+<body class="game-page onslaught-mode-page">
+  <div id="game-root" aria-label="Dark Onslaught spaceship arena"></div><div class="grain game-grain" aria-hidden="true"></div><div id="damage-vignette" aria-hidden="true"></div>
+  <header id="hud" class="hud"><div class="hud-left"><p class="objective-label">GAMEMODE · DARK ONSLAUGHT</p><p class="objective-text">Kill 30 entities before they overwhelm the ship.</p></div><div class="hud-center"><div class="stamina-heading"><span>HEALTH</span><span id="player-health-text">100%</span></div><div class="stamina-track"><div id="player-health-fill" class="stamina-fill"></div></div></div><div class="hud-right"><button id="pause-button" class="icon-button" type="button">Ⅱ</button></div></header>
+  <section class="onslaught-counter"><span>KILLS</span><strong id="kill-count">0 / 30</strong></section>
+  <aside class="minigun-hud"><span class="weapon-label">ASSAULT RIFLE</span><span class="weapon-status">HOLD SPACE OR LEFT CLICK · EACH ENTITY TAKES 2 HITS</span><span id="enemy-count" class="weapon-shots">HOSTILES: 0</span></aside>
+  <div id="crosshair" class="crosshair" aria-hidden="true"><span></span><span></span></div><div id="danger-message" class="danger-message" role="status"></div>
+  <section id="start-overlay" class="overlay visible"><div class="overlay-panel"><p class="eyebrow">GAMEMODE · DARK ONSLAUGHT</p><h1>THE SHIP IS NOT EMPTY.</h1><p>This is an open spaceship hangar, not a maze. Smaller entities will keep entering from the dark. Your assault rifle is automatic. Every creature requires exactly two successful hits. Kill 30 to survive.</p><div class="overlay-controls"><span><kbd>W A S D</kbd> Move</span><span><kbd>Mouse</kbd> Look</span><span><kbd>Shift</kbd> Sprint</span><span><kbd>Space / Click</kbd> Fire</span><span><kbd>Esc</kbd> Pause</span></div><button id="enter-button" class="primary-button" type="button">START ONSLAUGHT</button><a class="text-button campaign-link" href="/game">Back to menu</a></div></section>
+  <section id="pause-overlay" class="overlay"><div class="overlay-panel compact"><p class="eyebrow">GAME PAUSED</p><h2>THEY ARE STILL IN THE SHIP.</h2><button id="resume-button" class="primary-button" type="button">RESUME</button><button id="restart-pause-button" class="secondary-button" type="button">Restart onslaught</button><a class="text-button campaign-link" href="/game">Game menu</a></div></section>
+  <section id="end-overlay" class="overlay"><div class="overlay-panel end-panel"><p id="end-kicker" class="eyebrow"></p><h2 id="end-title"></h2><p id="end-copy"></p><button id="restart-button" class="primary-button" type="button">PLAY AGAIN</button><a class="text-button campaign-link" href="/game">Game menu</a></div></section>
+  <script type="module" src="/dark-onslaught.js"></script>
+</body>
+</html>
