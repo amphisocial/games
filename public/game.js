@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-const GRID_SIZE = 35;
+const GRID_SIZE = 29;
 const CELL_SIZE = 8;
 const HALF_GRID = (GRID_SIZE - 1) / 2;
 const EYE_HEIGHT = 1.72;
@@ -861,7 +861,7 @@ function buildExitRouteArrows() {
     const direction = { x: next.x - current.x, y: next.y - current.y };
     const priorDirection = { x: current.x - previous.x, y: current.y - previous.y };
     const isTurn = direction.x !== priorDirection.x || direction.y !== priorDirection.y;
-    if (!isTurn && index % 4 !== 0) continue;
+    if (!isTurn && index % 3 !== 0) continue;
 
     const sideCandidates = [
       { x: -direction.y, y: direction.x },
