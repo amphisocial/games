@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-const GRID_SIZE = 21;
+const GRID_SIZE = 15;
 const CELL_SIZE = 8;
 const HALF_GRID = (GRID_SIZE - 1) / 2;
 const EYE_HEIGHT = 1.72;
