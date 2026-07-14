@@ -25,22 +25,23 @@ const endCopy = document.getElementById('end-copy');
 const damageVignette = document.getElementById('damage-vignette');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x070209);
-scene.fog = new THREE.FogExp2(0x09030b, 0.012);
+scene.background = new THREE.Color(0x211727);
+scene.fog = new THREE.FogExp2(0x24182a, 0.008);
 const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.08, 260);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.7));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.48;
 renderer.shadowMap.enabled = true;
 root.appendChild(renderer.domElement);
 const controls = new PointerLockControls(camera, renderer.domElement);
 scene.add(camera);
 
-scene.add(new THREE.HemisphereLight(0x6f517c, 0x18080b, 1.1));
-const moon = new THREE.DirectionalLight(0xb18fd0, 1.4); moon.position.set(-30, 45, 20); scene.add(moon);
+scene.add(new THREE.AmbientLight(0x6f5977, 0.7));
+scene.add(new THREE.HemisphereLight(0xc6aadd, 0x3d2734, 2.15));
+const moon = new THREE.DirectionalLight(0xd6b7ee, 2.35); moon.position.set(-30, 45, 20); scene.add(moon);
 
 const keys = new Set();
 const raycaster = new THREE.Raycaster();
@@ -60,7 +61,7 @@ const weapons = {
 const bossTypes = [
   { name: 'THE HOLLOW KING', health: 130, speed: 3.25, color: 0x22141f, glow: 0x9400ff, shape: 'king' },
   { name: 'THE GLASS WARDEN', health: 115, speed: 3.8, color: 0x8b9da4, glow: 0x51e7ff, shape: 'warden' },
-  { name: 'THE ROT HOUND', health: 145, speed: 4.15, color: 0x3d2a18, glow: 0xff5a16, shape: 'hound' },
+  { name: 'THE ROT HOUND', health: 320, speed: 4.15, color: 0x3d2a18, glow: 0xff5a16, shape: 'hound' },
 ];
 const bossConfig = bossTypes[Math.floor(Math.random() * bossTypes.length)];
 bossHealth = bossConfig.health;
@@ -77,7 +78,7 @@ function buildArena() {
   }
   for (let i = 0; i < 8; i++) {
     const a = i / 8 * Math.PI * 2;
-    const fire = new THREE.PointLight(i % 2 ? 0x7700ff : 0xff2800, 5.5, 18, 2);
+    const fire = new THREE.PointLight(i % 2 ? 0xa64dff : 0xff5a2a, 8.5, 25, 2);
     fire.position.set(Math.cos(a) * 25, 3, Math.sin(a) * 25); scene.add(fire);
   }
 }
@@ -120,18 +121,43 @@ function makeBoss() {
 
 buildArena();
 const boss = makeBoss();
+const allies = [];
+function makeAlly(index) {
+  const group = new THREE.Group();
+  const armor = new THREE.MeshStandardMaterial({ color: 0x536472, roughness: 0.72, metalness: 0.35 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x1b2228, roughness: 0.58, metalness: 0.55 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0xb58b72, roughness: 0.88 });
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 1.05, 5, 8), armor); torso.position.y = 1.55; group.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 10, 8), skin); head.position.y = 2.42; group.add(head);
+  for (const x of [-0.3, 0.3]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.1,1.25,6), dark); leg.position.set(x*0.55,0.58,0); group.add(leg); }
+  const rifle = new THREE.Group(); const rifleBody = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.15,0.85),dark); rifleBody.position.set(0.34,1.62,-0.35); rifle.add(rifleBody); const rifleBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.8,6),dark); rifleBarrel.rotation.x=Math.PI/2; rifleBarrel.position.set(0.34,1.62,-1.12); rifle.add(rifleBarrel); group.add(rifle);
+  group.position.set(Math.cos(index/4*Math.PI*2)*12,0,Math.sin(index/4*Math.PI*2)*12+5);
+  group.userData = { shootCooldown: 0.25 + index * 0.17, orbitAngle: index/4*Math.PI*2, orbitRadius: 12 + (index%2)*3, rifle };
+  group.traverse(o=>{if(o.isMesh)o.castShadow=true;}); scene.add(group); allies.push(group);
+}
+if (bossConfig.shape === 'hound') for (let i = 0; i < 4; i++) makeAlly(i);
 camera.position.set(0, 1.72, 18);
 
+const weaponFill = new THREE.PointLight(0xffefd8, 3.2, 5, 2); weaponFill.position.set(0, -0.1, -0.8); camera.add(weaponFill);
 const weaponView = new THREE.Group(); camera.add(weaponView);
 function rebuildWeaponView() {
   weaponView.clear();
-  const mat = new THREE.MeshStandardMaterial({ color: selectedWeapon === 'sword' ? 0x9aa4a8 : 0x25282b, roughness: 0.55, metalness: 0.65 });
+  weaponView.position.set(0,0,0);
+  const metal = new THREE.MeshStandardMaterial({ color: selectedWeapon === 'sword' ? 0xb9c3c8 : 0x4d555b, roughness: 0.38, metalness: 0.78 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x171b1f, roughness: 0.55, metalness: 0.62 });
+  const hand = new THREE.MeshStandardMaterial({ color: 0xb88e74, roughness: 0.86 });
   if (selectedWeapon === 'sword') {
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.9, 0.18), mat); blade.position.set(0.62, -0.78, -1.15); blade.rotation.z = -0.35; weaponView.add(blade);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.09, 2.15, 0.16), metal); blade.position.set(0.68, -0.58, -1.25); blade.rotation.z = -0.4; weaponView.add(blade);
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.75,0.08,0.12),dark); guard.position.set(0.48,-1.4,-1.06); guard.rotation.z=-0.4; weaponView.add(guard);
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.7,8),dark); grip.position.set(0.26,-1.68,-0.9); grip.rotation.z=-0.4; weaponView.add(grip);
+    const handMesh = new THREE.Mesh(new THREE.SphereGeometry(0.17,10,8),hand); handMesh.position.set(0.3,-1.54,-0.94); weaponView.add(handMesh);
   } else {
-    const body = new THREE.Mesh(new THREE.BoxGeometry(selectedWeapon === 'minigun' ? 0.65 : 0.48, 0.34, 1.25), mat); body.position.set(0.58, -0.5, -1.15); weaponView.add(body);
-    const barrelCount = selectedWeapon === 'minigun' ? 5 : 1;
-    for (let i = 0; i < barrelCount; i++) { const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.25, 6), mat); barrel.rotation.x = Math.PI / 2; const a = i / barrelCount * Math.PI * 2; barrel.position.set(0.58 + Math.cos(a) * 0.08, -0.48 + Math.sin(a) * 0.08, -2); weaponView.add(barrel); }
+    const bodyWidth = selectedWeapon === 'minigun' ? 0.72 : 0.52;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(bodyWidth, 0.38, 1.35), metal); body.position.set(0.62, -0.48, -1.28); weaponView.add(body);
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.5,0.25),dark); grip.position.set(0.58,-0.77,-1.02); grip.rotation.x=-0.24; weaponView.add(grip);
+    const barrelCount = selectedWeapon === 'minigun' ? 6 : 1;
+    for (let i = 0; i < barrelCount; i++) { const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 1.4, 7), dark); barrel.rotation.x = Math.PI / 2; const a = i / barrelCount * Math.PI * 2; barrel.position.set(0.62 + Math.cos(a) * (selectedWeapon==='minigun'?0.1:0), -0.46 + Math.sin(a) * (selectedWeapon==='minigun'?0.1:0), -2.22); weaponView.add(barrel); }
+    for (const x of [0.4,0.82]) { const handMesh = new THREE.Mesh(new THREE.SphereGeometry(0.16,10,8),hand); handMesh.scale.set(1,.72,1.2); handMesh.position.set(x,-0.68,x<.5?-1.78:-.9); weaponView.add(handMesh); }
   }
   weaponName.textContent = weapons[selectedWeapon].name; weaponStatus.textContent = weapons[selectedWeapon].label;
 }
@@ -168,6 +194,33 @@ function attack() {
   updateHud();
 }
 
+function allyTracer(from, to) {
+  const geom = new THREE.BufferGeometry().setFromPoints([from,to]);
+  const line = new THREE.Line(geom,new THREE.LineBasicMaterial({color:0x9fe8ff,transparent:true,opacity:0.82}));
+  scene.add(line); setTimeout(()=>{scene.remove(line);geom.dispose();line.material.dispose();},75);
+}
+function updateAllies(delta,t) {
+  if (bossConfig.shape !== 'hound' || ended) return;
+  for (let i=0;i<allies.length;i++) {
+    const ally=allies[i];
+    ally.userData.orbitAngle += delta * (0.2 + i*0.025);
+    const desired = new THREE.Vector3(Math.cos(ally.userData.orbitAngle)*ally.userData.orbitRadius,0,Math.sin(ally.userData.orbitAngle)*ally.userData.orbitRadius);
+    const away = desired.clone().sub(boss.group.position); if (away.length()<7) desired.add(away.normalize().multiplyScalar(7-away.length()));
+    const moveDir=desired.sub(ally.position); moveDir.y=0; if(moveDir.length()>0.35){moveDir.normalize();ally.position.addScaledVector(moveDir,3.2*delta);}
+    const toBoss=boss.group.position.clone().sub(ally.position); toBoss.y=0; ally.rotation.y=Math.atan2(toBoss.x,toBoss.z);
+    ally.position.y=Math.abs(Math.sin(t*7+i))*0.04;
+    ally.userData.shootCooldown-=delta;
+    const distance=toBoss.length();
+    if(distance<42&&ally.userData.shootCooldown<=0){
+      ally.userData.shootCooldown=0.48+Math.random()*0.34;
+      const from=ally.position.clone().add(new THREE.Vector3(0.34,1.62,0));
+      const to=boss.torso.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3((Math.random()-.5)*0.45,(Math.random()-.5)*0.5,(Math.random()-.5)*0.45));
+      allyTracer(from,to); bossHealth-=0.9; updateHud();
+      if(bossHealth<=0){finish(true);return;}
+    }
+  }
+}
+
 function updateBoss(delta, t) {
   if (ended) return;
   const toPlayer = camera.position.clone().sub(boss.group.position); const distance = toPlayer.length(); toPlayer.y = 0;
@@ -187,11 +240,11 @@ function updatePlayer(delta) {
 function finish(won) { ended = true; paused = true; controls.unlock(); firing = false; endKicker.textContent = won ? 'ENTITY DESTROYED' : 'YOU WERE CLAIMED'; endTitle.textContent = won ? `${bossConfig.name} IS DEAD.` : `${bossConfig.name} KILLED YOU.`; endCopy.textContent = won ? `You survived with the ${weapons[selectedWeapon].name.toLowerCase()}.` : 'Choose another weapon. Or become better prey.'; endOverlay.classList.add('visible'); }
 
 enterButton.addEventListener('click', () => controls.lock()); resumeButton.addEventListener('click', () => controls.lock()); restartPauseButton.addEventListener('click', () => location.reload()); restartButton.addEventListener('click', () => location.reload()); pauseButton.addEventListener('click', () => { if (started && !ended) controls.unlock(); });
-controls.addEventListener('lock', () => { started = true; paused = false; startOverlay.classList.remove('visible'); pauseOverlay.classList.remove('visible'); });
+controls.addEventListener('lock', () => { const firstStart=!started; started = true; paused = false; startOverlay.classList.remove('visible'); pauseOverlay.classList.remove('visible'); if(firstStart&&bossConfig.shape==='hound')showDanger('AI FIRETEAM DEPLOYED · 4 RIFLEMEN',2.4); });
 controls.addEventListener('unlock', () => { if (started && !ended) { paused = true; pauseOverlay.classList.add('visible'); } });
 addEventListener('keydown', e => { keys.add(e.code); if (e.code === 'Space') { e.preventDefault(); firing = true; } }); addEventListener('keyup', e => { keys.delete(e.code); if (e.code === 'Space') firing = false; });
 addEventListener('mousedown', e => { if (e.button === 0) firing = true; }); addEventListener('mouseup', e => { if (e.button === 0) firing = false; });
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
-function animate() { requestAnimationFrame(animate); const delta = Math.min(clock.getDelta(), 0.05); const t = performance.now() / 1000; if (!paused && !ended) { fireCooldown -= delta; if (firing) attack(); updatePlayer(delta); updateBoss(delta,t); if (swordSwing > 0) { swordSwing -= delta; weaponView.rotation.z = -0.8 * (swordSwing / 0.22); } else weaponView.rotation.z *= 0.8; if (dangerTimer > 0) { dangerTimer -= delta; if (dangerTimer <= 0) dangerMessage.classList.remove('visible'); } } renderer.render(scene,camera); }
+function animate() { requestAnimationFrame(animate); const delta = Math.min(clock.getDelta(), 0.05); const t = performance.now() / 1000; if (!paused && !ended) { fireCooldown -= delta; if (firing) attack(); updatePlayer(delta); updateAllies(delta,t); updateBoss(delta,t); if (swordSwing > 0) { swordSwing -= delta; weaponView.rotation.z = -0.8 * (swordSwing / 0.22); } else weaponView.rotation.z *= 0.8; if (dangerTimer > 0) { dangerTimer -= delta; if (dangerTimer <= 0) dangerMessage.classList.remove('visible'); } } renderer.render(scene,camera); }
 updateHud(); animate();

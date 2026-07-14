@@ -1005,14 +1005,16 @@ body.consumed #end-title {
 .feed-jumpscare {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 9999;
   pointer-events: none;
   opacity: 0;
   overflow: hidden;
   background: rgba(40,0,0,0);
   transition: opacity .08s linear;
 }
-.feed-jumpscare.active { opacity: 1; animation: feedFlash .22s steps(2,end) infinite; }
+.feed-jumpscare.active { opacity: 1; pointer-events: all; cursor: none; animation: feedFlash .22s steps(2,end) infinite; }
+body.feeding-lock { overflow: hidden; user-select: none; }
+body.feeding-lock *:not(.feed-jumpscare):not(.feed-jumpscare *) { pointer-events: none !important; }
 .feed-jaw {
   position: absolute;
   left: -5%;
@@ -1023,8 +1025,9 @@ body.consumed #end-title {
 }
 .feed-jaw-top { top: 0; transform: translateY(-102%); }
 .feed-jaw-bottom { bottom: 0; transform: translateY(102%) rotate(180deg); }
-.feed-jumpscare.active .feed-jaw-top { transform: translateY(-8%); }
-.feed-jumpscare.active .feed-jaw-bottom { transform: translateY(8%) rotate(180deg); }
+.feed-jumpscare.active .feed-jaw-top { transform: translateY(-1%); }
+.feed-jumpscare.active .feed-jaw-bottom { transform: translateY(1%) rotate(180deg); }
+.feed-jumpscare.finished { opacity: 0; pointer-events: none; }
 .feed-text {
   position: absolute;
   inset: 0;
