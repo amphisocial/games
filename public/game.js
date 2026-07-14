@@ -969,186 +969,233 @@ function buildExit() {
 
 function makeEntity() {
   const group = new THREE.Group();
-  const silhouetteMaterial = new THREE.MeshStandardMaterial({
-    color: 0x050607,
-    emissive: 0x000000,
-    roughness: 0.95,
+
+  const coatMaterial = new THREE.MeshStandardMaterial({
+    color: 0x5d5348,
+    roughness: 0.96,
     metalness: 0.02,
   });
-  const faceMaterial = new THREE.MeshStandardMaterial({
-    color: 0x8a735f,
-    roughness: 0.88,
-    emissive: 0x120904,
-    emissiveIntensity: 0.18,
+  const coatShadowMaterial = new THREE.MeshStandardMaterial({
+    color: 0x463c34,
+    roughness: 0.98,
+    metalness: 0.01,
   });
-  const boneMaterial = new THREE.MeshStandardMaterial({ color: 0xd7ccc0, roughness: 0.5, metalness: 0.02 });
-  const eyeSocketMaterial = new THREE.MeshStandardMaterial({ color: 0x010101, roughness: 1 });
-  const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xf2f2f2, emissiveIntensity: 1.25 });
-  const clawMaterial = new THREE.MeshStandardMaterial({ color: 0x090909, roughness: 0.55, metalness: 0.05 });
-  const mouthMaterial = new THREE.MeshStandardMaterial({ color: 0x090203, roughness: 1 });
+  const fleshMaterial = new THREE.MeshStandardMaterial({
+    color: 0x7f1d1d,
+    emissive: 0x2c0000,
+    emissiveIntensity: 0.42,
+    roughness: 0.86,
+    metalness: 0.02,
+  });
+  const goreMaterial = new THREE.MeshStandardMaterial({
+    color: 0xb01a1a,
+    emissive: 0x470000,
+    emissiveIntensity: 0.65,
+    roughness: 0.72,
+    metalness: 0.01,
+  });
+  const boneMaterial = new THREE.MeshStandardMaterial({ color: 0xd6cec4, roughness: 0.48, metalness: 0.02 });
+  const eyeSocketMaterial = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 1 });
+  const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0xf7f7f7, emissive: 0xffffff, emissiveIntensity: 1.1 });
+  const clawMaterial = new THREE.MeshStandardMaterial({ color: 0xefe5da, roughness: 0.45, metalness: 0.04 });
+  const mouthMaterial = new THREE.MeshStandardMaterial({ color: 0x190406, roughness: 1 });
 
-  group.position.y = 0.04;
+  group.position.y = 0.02;
 
-  const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.72, 0.7), silhouetteMaterial);
-  pelvis.position.set(0, 3.05, 0.22);
-  pelvis.rotation.z = -0.08;
+  const pelvis = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.78, 0.82), coatMaterial);
+  pelvis.position.set(0, 3.25, 0.08);
   group.add(pelvis);
 
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.46, 3.1, 6, 10), silhouetteMaterial);
-  torso.scale.set(0.9, 1.22, 0.62);
-  torso.position.set(0, 5.05, -0.12);
-  torso.rotation.z = -0.26;
-  torso.rotation.x = 0.08;
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(1.45, 3.72, 0.94), coatMaterial);
+  torso.position.set(0, 5.45, -0.05);
+  torso.rotation.z = -0.035;
   group.add(torso);
 
-  const shoulderArch = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.42, 0.5), silhouetteMaterial);
-  shoulderArch.position.set(0.12, 6.18, -0.18);
-  shoulderArch.rotation.z = -0.18;
-  group.add(shoulderArch);
+  const shoulderBlock = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.42, 1.02), coatShadowMaterial);
+  shoulderBlock.position.set(0, 7.18, -0.06);
+  group.add(shoulderBlock);
 
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.28, 2.8, 8), silhouetteMaterial);
-  neck.position.set(0.36, 7.22, 0.08);
-  neck.rotation.z = -1.05;
-  neck.rotation.x = 0.14;
+  const lowerTorso = new THREE.Mesh(new THREE.BoxGeometry(1.02, 1.35, 0.72), coatShadowMaterial);
+  lowerTorso.position.set(0, 3.95, 0.12);
+  group.add(lowerTorso);
+
+  const chestCavity = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.32, 0.34, 18), mouthMaterial);
+  chestCavity.rotation.x = Math.PI / 2;
+  chestCavity.position.set(0, 5.25, 0.5);
+  group.add(chestCavity);
+
+  const chestBurst = new THREE.Group();
+  chestBurst.position.set(0, 5.25, 0.44);
+  group.add(chestBurst);
+  for (let i = 0; i < 9; i += 1) {
+    const shard = new THREE.Mesh(new THREE.BoxGeometry(0.08 + (i % 3) * 0.02, 0.14 + (i % 4) * 0.03, 0.08), i % 2 === 0 ? goreMaterial : fleshMaterial);
+    const angle = (Math.PI * 2 * i) / 9;
+    shard.position.set(Math.cos(angle) * (0.11 + (i % 2) * 0.08), Math.sin(angle) * 0.12, 0.06 + (i % 3) * 0.02);
+    shard.rotation.set((i % 3) * 0.25, angle, (i % 4) * 0.2);
+    chestBurst.add(shard);
+  }
+
+  const neck = new THREE.Mesh(new THREE.BoxGeometry(0.34, 2.15, 0.34), fleshMaterial);
+  neck.position.set(0, 8.5, 0.02);
   group.add(neck);
 
+  const throatRoot = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.28, 0.58), goreMaterial);
+  throatRoot.position.set(0, 7.68, 0.12);
+  group.add(throatRoot);
+
   const headPivot = new THREE.Group();
-  headPivot.position.set(1.48, 8.02, 0.1);
+  headPivot.position.set(0.02, 9.68, 0.03);
   group.add(headPivot);
 
-  const headBack = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1.65, 4, 9), silhouetteMaterial);
-  headBack.rotation.z = 0.08;
-  headBack.rotation.x = 0.14;
-  headBack.scale.set(0.76, 1.08, 0.72);
-  headPivot.add(headBack);
+  const skullCap = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.58, 0.92), coatShadowMaterial);
+  skullCap.position.set(0, 0.42, -0.02);
+  skullCap.rotation.z = 0.04;
+  headPivot.add(skullCap);
 
-  const face = new THREE.Mesh(new THREE.SphereGeometry(0.48, 16, 12), faceMaterial);
-  face.position.set(0.02, -0.06, 0.42);
-  face.scale.set(0.9, 0.78, 0.42);
-  headPivot.add(face);
+  const facePlate = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.88, 0.18), boneMaterial);
+  facePlate.position.set(0, 0.04, 0.42);
+  facePlate.rotation.x = -0.06;
+  headPivot.add(facePlate);
 
-  const snout = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.68, 9), silhouetteMaterial);
-  snout.rotation.x = Math.PI / 2;
-  snout.position.set(0, -0.18, 0.63);
-  headPivot.add(snout);
+  const upperMouth = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.16, 0.28), mouthMaterial);
+  upperMouth.position.set(0, -0.18, 0.4);
+  headPivot.add(upperMouth);
 
   const jawPivot = new THREE.Group();
-  jawPivot.position.set(0.02, -0.16, 0.34);
+  jawPivot.position.set(0, -0.16, 0.36);
   headPivot.add(jawPivot);
-  jawPivot.rotation.x = -0.14;
-  const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 0.8), mouthMaterial);
-  jaw.position.set(0, -0.02, 0.28);
+  jawPivot.rotation.x = -0.08;
+  const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.14, 0.36), fleshMaterial);
+  jaw.position.set(0, -0.08, 0.08);
   jawPivot.add(jaw);
 
   const eyes = [];
   const pupils = [];
-  for (const x of [-0.12, 0.12]) {
-    const socket = new THREE.Mesh(new THREE.SphereGeometry(0.105, 10, 8), eyeSocketMaterial);
-    socket.position.set(x, 0.01, 0.48);
-    socket.scale.set(0.8, 1.1, 0.42);
+  for (const x of [-0.14, 0.14]) {
+    const socket = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.18, 0.06), eyeSocketMaterial);
+    socket.position.set(x, 0.08, 0.52);
     headPivot.add(socket);
     eyes.push(socket);
 
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 6), pupilMaterial);
-    pupil.position.set(x, 0.015, 0.56);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.022, 7, 6), pupilMaterial);
+    pupil.position.set(x, 0.08, 0.57);
     headPivot.add(pupil);
     pupils.push(pupil);
   }
 
   const upperTeeth = [];
   const lowerTeeth = [];
-  [-0.16, -0.08, 0, 0.08, 0.16].forEach((x, index) => {
-    const height = index === 0 || index === 4 ? 0.26 : 0.15 + Math.abs(index - 2) * 0.03;
-    const upper = new THREE.Mesh(new THREE.ConeGeometry(0.035, height, 6), boneMaterial);
-    upper.rotation.x = Math.PI;
-    upper.position.set(x, -0.18, 0.55);
-    headPivot.add(upper);
-    upperTeeth.push(upper);
+  for (const [i, x] of [-0.15, -0.08, 0, 0.08, 0.15].entries()) {
+    const height = i === 0 || i === 4 ? 0.18 : 0.12 + Math.abs(i - 2) * 0.015;
+    const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.024, height, 5), boneMaterial);
+    tooth.rotation.x = Math.PI;
+    tooth.position.set(x, -0.22, 0.55);
+    headPivot.add(tooth);
+    upperTeeth.push(tooth);
 
-    const lower = new THREE.Mesh(new THREE.ConeGeometry(0.03, height * 0.8, 6), boneMaterial);
-    lower.position.set(x, 0.02, 0.48);
+    const lower = new THREE.Mesh(new THREE.ConeGeometry(0.02, height * 0.85, 5), boneMaterial);
+    lower.position.set(x, 0.03, 0.19);
     jawPivot.add(lower);
     lowerTeeth.push(lower);
-  });
+  }
 
-  const earRoots = [];
+  const crownSpikes = [];
   for (const side of [-1, 1]) {
-    const earRoot = new THREE.Group();
-    earRoot.position.set(side * 0.18, 0.43, 0.04);
-    headPivot.add(earRoot);
-    const ear = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.085, 1.78, 7), silhouetteMaterial);
-    ear.position.y = 0.84;
-    earRoot.add(ear);
-    const earTip = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), silhouetteMaterial);
-    earTip.position.y = 1.7;
-    earRoot.add(earTip);
-    earRoot.rotation.z = side * (0.34 + random() * 0.08);
-    earRoot.rotation.x = side * 0.04;
-    earRoots.push(earRoot);
+    const spikeRoot = new THREE.Group();
+    spikeRoot.position.set(side * 0.16, 0.56, -0.04);
+    headPivot.add(spikeRoot);
+
+    const spike = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.07, 0.72, 6), boneMaterial);
+    spike.position.y = 0.34;
+    spikeRoot.add(spike);
+
+    const spikeTip = new THREE.Mesh(new THREE.SphereGeometry(0.05, 7, 6), boneMaterial);
+    spikeTip.position.y = 0.68;
+    spikeRoot.add(spikeTip);
+
+    spikeRoot.rotation.z = side * 0.26;
+    crownSpikes.push(spikeRoot);
+  }
+
+  const goreColumn = new THREE.Group();
+  goreColumn.position.set(0, 0.62, 0.02);
+  headPivot.add(goreColumn);
+  for (let i = 0; i < 7; i += 1) {
+    const lump = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18 + (i % 2) * 0.05, 0.16 + (i % 3) * 0.04, 0.18 + (i % 2) * 0.03),
+      i % 2 === 0 ? fleshMaterial : goreMaterial,
+    );
+    lump.position.set((random() - 0.5) * 0.18, 0.08 + i * 0.11, (random() - 0.5) * 0.18);
+    lump.rotation.set(random() * 0.6, random() * 0.6, random() * 0.6);
+    goreColumn.add(lump);
   }
 
   function createArm(x) {
     const pivot = new THREE.Group();
-    pivot.position.set(x, 6.08, -0.04);
+    pivot.position.set(x, 7.08, 0);
     group.add(pivot);
 
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 2.45, 7), silhouetteMaterial);
-    upper.position.y = -1.2;
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.32, 2.72, 0.32), coatMaterial);
+    upper.position.y = -1.36;
     pivot.add(upper);
 
+    const elbow = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.24), goreMaterial);
+    elbow.position.y = -2.72;
+    pivot.add(elbow);
+
     const lowerPivot = new THREE.Group();
-    lowerPivot.position.y = -2.32;
+    lowerPivot.position.y = -2.72;
     pivot.add(lowerPivot);
-    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, 2.22, 7), silhouetteMaterial);
-    lower.position.y = -1.12;
+    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.26, 3.06, 0.26), coatShadowMaterial);
+    lower.position.y = -1.53;
     lowerPivot.add(lower);
 
-    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.44), silhouetteMaterial);
-    hand.position.set(0, -2.2, 0.02);
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.22), fleshMaterial);
+    hand.position.set(0, -3.07, 0.02);
     lowerPivot.add(hand);
 
     const claws = [];
-    for (const clawX of [-0.08, 0, 0.08]) {
-      const claw = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.42, 6), clawMaterial);
+    for (const clawX of [-0.07, 0, 0.07]) {
+      const claw = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.28, 5), clawMaterial);
       claw.rotation.x = Math.PI / 2;
-      claw.position.set(clawX, -2.22, 0.3);
+      claw.position.set(clawX, -3.07, 0.18);
       lowerPivot.add(claw);
       claws.push(claw);
     }
 
-    pivot.rotation.z = x < 0 ? 0.14 : -0.14;
+    pivot.rotation.z = x < 0 ? 0.03 : -0.03;
     return { pivot, lowerPivot, claws };
   }
 
   function createLeg(x) {
     const pivot = new THREE.Group();
-    pivot.position.set(x, 3.05, 0.18);
+    pivot.position.set(x, 3.12, 0.08);
     group.add(pivot);
 
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 2.3, 8), silhouetteMaterial);
-    upper.position.y = -1.15;
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.38, 3.25, 0.38), coatMaterial);
+    upper.position.y = -1.62;
     pivot.add(upper);
 
-    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), faceMaterial);
-    knee.position.y = -2.28;
+    const knee = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.28, 0.26), goreMaterial);
+    knee.position.y = -3.22;
     pivot.add(knee);
 
     const lowerPivot = new THREE.Group();
-    lowerPivot.position.y = -2.25;
+    lowerPivot.position.y = -3.22;
     pivot.add(lowerPivot);
-    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 2.35, 8), silhouetteMaterial);
-    lower.position.y = -1.16;
+    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.32, 3.48, 0.32), coatShadowMaterial);
+    lower.position.y = -1.74;
     lowerPivot.add(lower);
 
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, 0.8), silhouetteMaterial);
-    foot.position.set(0, -2.28, 0.18);
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.18, 0.92), coatShadowMaterial);
+    foot.position.set(0, -3.46, 0.22);
     lowerPivot.add(foot);
 
     const claws = [];
     for (const clawX of [-0.1, 0, 0.1]) {
-      const claw = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.28, 6), clawMaterial);
+      const claw = new THREE.Mesh(new THREE.ConeGeometry(0.024, 0.18, 5), clawMaterial);
       claw.rotation.x = Math.PI / 2;
-      claw.position.set(clawX, -2.28, 0.62);
+      claw.position.set(clawX, -3.46, 0.62);
       lowerPivot.add(claw);
       claws.push(claw);
     }
@@ -1156,10 +1203,10 @@ function makeEntity() {
     return { pivot, lowerPivot, foot, claws };
   }
 
-  const leftArm = createArm(-0.5);
-  const rightArm = createArm(0.58);
-  const leftLeg = createLeg(-0.28);
-  const rightLeg = createLeg(0.28);
+  const leftArm = createArm(-0.84);
+  const rightArm = createArm(0.84);
+  const leftLeg = createLeg(-0.24);
+  const rightLeg = createLeg(0.24);
 
   group.traverse((child) => {
     if (child.isMesh) {
@@ -1168,8 +1215,8 @@ function makeEntity() {
     }
   });
 
-  const aura = new THREE.PointLight(0x2d0000, 2.4, 9, 2);
-  aura.position.set(1.2, 7.5, 0.4);
+  const aura = new THREE.PointLight(0x5b0000, 2.8, 10, 2);
+  aura.position.set(0, 8.7, 0.5);
   group.add(aura);
 
   const electricField = new THREE.Group();
@@ -1192,7 +1239,7 @@ function makeEntity() {
     electricLines.push(arc);
   }
   const stunLight = new THREE.PointLight(0x33aaff, 0, 13, 2);
-  stunLight.position.set(0.4, 5.2, 0);
+  stunLight.position.set(0.1, 5.7, 0);
   group.add(stunLight);
 
   scene.add(group);
@@ -1209,7 +1256,7 @@ function makeEntity() {
     pupils,
     upperTeeth,
     lowerTeeth,
-    earRoots,
+    earRoots: crownSpikes,
     redAura: aura,
     electricField,
     electricLines,
