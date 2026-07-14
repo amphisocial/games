@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-const GRID_SIZE = 29;
+const GRID_SIZE = 21;
 const CELL_SIZE = 8;
 const HALF_GRID = (GRID_SIZE - 1) / 2;
 const EYE_HEIGHT = 1.72;
@@ -21,6 +21,8 @@ const root = document.getElementById('game-root');
 const staminaFill = document.getElementById('stamina-fill');
 const staminaSeconds = document.getElementById('stamina-seconds');
 const staminaState = document.getElementById('stamina-state');
+const progressFill = document.getElementById('progress-fill');
+const progressPercent = document.getElementById('progress-percent');
 const startOverlay = document.getElementById('start-overlay');
 const pauseOverlay = document.getElementById('pause-overlay');
 const endOverlay = document.getElementById('end-overlay');
@@ -105,6 +107,8 @@ let maze;
 let startCell;
 let exitCell;
 let distanceFromStart;
+let distanceToExit;
+let startToExitDistance = 1;
 let entity;
 let entityParts;
 let entityPath = [];
@@ -335,20 +339,20 @@ function createCanvasTexture(kind) {
       context.fillRect(x, 0, 2, 128);
     }
   } else if (kind === 'ground') {
-    context.fillStyle = '#161512';
+    context.fillStyle = '#4b4439';
     context.fillRect(0, 0, 128, 128);
     for (let i = 0; i < 1800; i += 1) {
-      const shade = 18 + Math.floor(random() * 28);
-      context.fillStyle = `rgba(${shade},${shade - 2},${shade - 7},${0.18 + random() * 0.3})`;
+      const shade = 70 + Math.floor(random() * 38);
+      context.fillStyle = `rgba(${shade},${Math.max(48, shade - 12)},${Math.max(38, shade - 22)},${0.14 + random() * 0.24})`;
       const size = 1 + random() * 2;
       context.fillRect(random() * 128, random() * 128, size, size);
     }
   } else {
-    context.fillStyle = '#25282a';
+    context.fillStyle = '#5a5852';
     context.fillRect(0, 0, 128, 128);
     for (let i = 0; i < 750; i += 1) {
-      const shade = 22 + Math.floor(random() * 40);
-      context.fillStyle = `rgba(${shade},${shade + 1},${shade},${0.08 + random() * 0.23})`;
+      const shade = 74 + Math.floor(random() * 48);
+      context.fillStyle = `rgba(${shade},${shade - 2},${Math.max(52, shade - 8)},${0.08 + random() * 0.22})`;
       context.fillRect(random() * 128, random() * 128, 1 + random() * 3, 1 + random() * 3);
     }
     for (let i = 0; i < 8; i += 1) {
@@ -376,23 +380,23 @@ wallTexture.repeat.set(1.4, 1.4);
 
 const wallMaterial = new THREE.MeshStandardMaterial({
   map: wallTexture,
-  color: 0x8c9692,
-  emissive: 0x17201f,
+  color: 0xa39c8f,
+  emissive: 0x211d18,
   emissiveIntensity: 0.3,
   roughness: 1,
   metalness: 0,
 });
 const outerWallMaterial = new THREE.MeshStandardMaterial({
   map: wallTexture,
-  color: 0x58625f,
-  emissive: 0x111817,
+  color: 0x6f6a61,
+  emissive: 0x171411,
   emissiveIntensity: 0.25,
   roughness: 1,
 });
 const groundMaterial = new THREE.MeshStandardMaterial({
   map: groundTexture,
-  color: 0x807865,
-  emissive: 0x211d15,
+  color: 0x8d806b,
+  emissive: 0x2a2118,
   emissiveIntensity: 0.28,
   roughness: 1,
 });
@@ -861,7 +865,7 @@ function buildExitRouteArrows() {
     const direction = { x: next.x - current.x, y: next.y - current.y };
     const priorDirection = { x: current.x - previous.x, y: current.y - previous.y };
     const isTurn = direction.x !== priorDirection.x || direction.y !== priorDirection.y;
-    if (!isTurn && index % 3 !== 0) continue;
+    if (!isTurn && index % 2 !== 0) continue;
 
     const sideCandidates = [
       { x: -direction.y, y: direction.x },
@@ -1937,6 +1941,18 @@ function updateStaminaHud() {
   staminaState.textContent = exhausted ? 'EXHAUSTED — KEEP MOVING' : stamina < MAX_STAMINA ? 'RECOVERING' : 'W + SHIFT TO SPRINT';
 }
 
+function updateProgressHud() {
+  if (!distanceToExit || !camera) return;
+  const cell = nearestOpenCell(camera.position);
+  const remaining = distanceToExit[cell.y]?.[cell.x];
+  if (remaining == null || remaining < 0) return;
+  const rawProgress = 1 - remaining / Math.max(1, startToExitDistance);
+  const progress = THREE.MathUtils.clamp(rawProgress, 0, 1);
+  const percent = Math.round(progress * 100);
+  progressFill.style.transform = `scaleX(${progress})`;
+  progressPercent.textContent = `${percent}%`;
+}
+
 function updatePlayer(delta, nowSeconds) {
   const movingForward = keys.has('KeyW');
   const movingBackward = keys.has('KeyS');
@@ -2318,6 +2334,8 @@ function setupGameWorld() {
   startCell = { x: 1, y: 1 };
   distanceFromStart = bfsDistances(maze, startCell);
   exitCell = findFarthestCell(distanceFromStart);
+  distanceToExit = bfsDistances(maze, exitCell);
+  startToExitDistance = Math.max(1, distanceToExit[startCell.y][startCell.x]);
 
   buildMazeMeshes();
   placeCabins();
@@ -2454,6 +2472,7 @@ function animate(frameTime) {
   } else if (started && !paused && !ended) {
     elapsedRunTime += delta;
     updatePlayer(delta, nowSeconds);
+    updateProgressHud();
     updateEntity(delta, nowSeconds);
     checkExit();
   }
@@ -2469,6 +2488,7 @@ async function initialize() {
   await loadUser();
   setupGameWorld();
   updateStaminaHud();
+  updateProgressHud();
   requestAnimationFrame(animate);
 }
 

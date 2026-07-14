@@ -342,6 +342,38 @@ kbd {
   font-size: .56rem;
 }
 
+
+.finish-progress {
+  margin-top: 12px;
+}
+
+.finish-progress-heading {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  color: #b7aa98;
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.finish-progress-track {
+  height: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(216, 198, 171, .24);
+  background: rgba(18, 15, 12, .78);
+}
+
+.finish-progress-fill {
+  width: 100%;
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: linear-gradient(90deg, #786754, #b7a184);
+  box-shadow: 0 0 12px rgba(189, 160, 126, .2);
+  transition: transform .18s linear;
+}
+
 .user-badge {
   display: flex;
   align-items: center;
