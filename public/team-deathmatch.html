@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#111820" />
+  <title>Gamemode — Starship Team Deathmatch</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" />
+  <script type="importmap">{"imports":{"three":"/vendor/three/three.module.js"}}</script>
+  <style>
+    .tdm-hud { position: fixed; inset: 0; pointer-events: none; z-index: 8; color: #eef5ff; font-family: Inter, system-ui, sans-serif; }
+    .tdm-score { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; padding: 10px 18px; border: 1px solid rgba(255,255,255,.18); background: rgba(6,10,16,.72); backdrop-filter: blur(8px); border-radius: 12px; letter-spacing: .08em; font-weight: 800; }
+    .tdm-score .blue { color: #7ed8ff; } .tdm-score .red { color: #ff7d78; } .tdm-score strong { font-size: 1.35rem; }
+    .tdm-status { position: absolute; right: 22px; bottom: 22px; width: 280px; padding: 14px; background: rgba(5,9,14,.8); border: 1px solid rgba(120,180,220,.25); border-radius: 12px; }
+    .tdm-status-row { display:flex; justify-content:space-between; margin: 5px 0; font-size:.82rem; letter-spacing:.08em; }
+    .tdm-status .big { font-size:1.15rem; font-weight:800; }
+    .tdm-health-track { height: 8px; background: rgba(255,255,255,.12); margin-top:8px; overflow:hidden; border-radius:99px; }
+    .tdm-health-fill { height:100%; transform-origin:left center; background: linear-gradient(90deg,#8ad6ff,#d8f2ff); }
+    .tdm-reload { color:#ffd48c; min-height:1.2em; margin-top:6px; font-size:.78rem; letter-spacing:.09em; }
+    .tdm-minimap-wrap { position: absolute; left: 18px; bottom: 18px; width: 230px; height: 230px; padding: 8px; background: rgba(4,8,12,.82); border: 1px solid rgba(160,205,230,.28); border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,.35); }
+    #tdm-minimap { width:100%; height:100%; display:block; border-radius:7px; background:#101820; }
+    .tdm-minimap-label { position:absolute; left:12px; top:10px; font-size:.66rem; letter-spacing:.12em; color:rgba(230,245,255,.7); }
+    .tdm-crosshair { position:absolute; left:50%; top:50%; width:18px; height:18px; transform:translate(-50%,-50%); opacity:.9; }
+    .tdm-crosshair::before,.tdm-crosshair::after { content:""; position:absolute; background:#eef8ff; box-shadow:0 0 7px rgba(150,220,255,.8); }
+    .tdm-crosshair::before { width:18px; height:2px; top:8px; left:0; } .tdm-crosshair::after { width:2px; height:18px; top:0; left:8px; }
+    .tdm-feed { position:absolute; right:22px; top:96px; width:300px; display:flex; flex-direction:column; gap:5px; }
+    .tdm-feed div { padding:7px 9px; background:rgba(4,7,11,.62); border-left:3px solid rgba(255,255,255,.35); font-size:.75rem; }
+    .tdm-respawn { position:absolute; inset:0; display:none; align-items:center; justify-content:center; text-align:center; background:rgba(2,4,7,.48); font-size:2rem; font-weight:900; letter-spacing:.08em; }
+    .tdm-respawn.visible { display:flex; }
+    .tdm-help { position:absolute; left:50%; bottom:22px; transform:translateX(-50%); padding:8px 12px; background:rgba(3,7,11,.66); border:1px solid rgba(255,255,255,.14); border-radius:10px; font-size:.72rem; letter-spacing:.08em; }
+    @media (max-width: 760px) { .tdm-minimap-wrap { width:170px; height:170px; } .tdm-status { width:220px; } .tdm-feed{display:none;} }
+  </style>
+</head>
+<body class="game-page">
+  <div id="game-root" aria-label="Third-person spaceship team deathmatch"></div>
+  <div class="grain game-grain" aria-hidden="true"></div>
+  <div id="damage-vignette" aria-hidden="true"></div>
+
+  <div id="tdm-hud" class="tdm-hud">
+    <div class="tdm-score"><span class="blue">BLUE</span><strong id="blue-score">0</strong><span>—</span><strong id="red-score">0</strong><span class="red">RED</span><small>FIRST TO 40</small></div>
+    <div class="tdm-minimap-wrap"><span class="tdm-minimap-label">SHIP MAP</span><canvas id="tdm-minimap" width="440" height="440"></canvas></div>
+    <div class="tdm-status">
+      <div class="tdm-status-row"><span>ASSAULT RIFLE</span><span id="ammo-text" class="big">80 / ∞</span></div>
+      <div class="tdm-status-row"><span>HEALTH</span><span id="health-text">40 / 40</span></div>
+      <div class="tdm-health-track"><div id="health-fill" class="tdm-health-fill"></div></div>
+      <div id="reload-status" class="tdm-reload"></div>
+    </div>
+    <div class="tdm-crosshair" aria-hidden="true"></div>
+    <div id="kill-feed" class="tdm-feed"></div>
+    <div id="respawn-overlay" class="tdm-respawn"></div>
+    <div class="tdm-help">WASD MOVE · MOUSE AIM · HOLD LEFT CLICK / SPACE FIRE · R RELOAD · ESC PAUSE</div>
+  </div>
+
+  <section id="start-overlay" class="overlay visible">
+    <div class="overlay-panel">
+      <p class="eyebrow">GAMEMODE · THIRD-PERSON TEAM DEATHMATCH</p>
+      <h1>STARSHIP KILLZONE</h1>
+      <p>You and 39 AI human soldiers face 40 enemy soldiers across a multi-room spaceship. Everyone has 40 health and requires exactly 30 successful assault-rifle hits to eliminate. Soldiers respawn. The first team to 40 kills wins.</p>
+      <div class="overlay-controls"><span><kbd>W A S D</kbd> Move</span><span><kbd>Mouse</kbd> Aim camera</span><span><kbd>Space / Click</kbd> Rapid fire</span><span><kbd>R</kbd> Reload after 80 rounds</span><span><kbd>Esc</kbd> Pause</span></div>
+      <button id="enter-button" class="primary-button" type="button">DEPLOY</button>
+      <a class="text-button campaign-link" href="/game">Back to menu</a>
+    </div>
+  </section>
+
+  <section id="pause-overlay" class="overlay">
+    <div class="overlay-panel compact">
+      <p class="eyebrow">MATCH PAUSED</p><h2>THE FIREFIGHT IS WAITING.</h2>
+      <button id="resume-button" class="primary-button" type="button">RESUME</button>
+      <button id="restart-button" class="secondary-button" type="button">Restart match</button>
+      <a class="text-button campaign-link" href="/game">Game menu</a>
+    </div>
+  </section>
+
+  <section id="end-overlay" class="overlay">
+    <div class="overlay-panel end-panel">
+      <p id="end-kicker" class="eyebrow"></p><h2 id="end-title"></h2><p id="end-copy"></p>
+      <button id="play-again-button" class="primary-button" type="button">PLAY AGAIN</button>
+      <a class="text-button campaign-link" href="/game">Game menu</a>
+    </div>
+  </section>
+
+  <script type="module" src="/team-deathmatch.js"></script>
+</body>
+</html>

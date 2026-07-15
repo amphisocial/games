@@ -279,6 +279,8 @@ app.get('/mode/be-the-monster', requireAuth, (_req, res) => res.sendFile(path.jo
 app.get('/be-the-monster.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'be-the-monster.js')));
 app.get('/mode/dark-onslaught', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'dark-onslaught.html')));
 app.get('/dark-onslaught.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'dark-onslaught.js')));
+app.get('/mode/team-deathmatch', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'team-deathmatch.html')));
+app.get('/team-deathmatch.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'team-deathmatch.js')));
 
 app.get('/mode/haunted-ascension/queue', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'haunted-queue.html')));
 app.get('/haunted-queue.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'haunted-queue.js')));
