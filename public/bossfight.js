@@ -67,6 +67,124 @@ const bossConfig = bossTypes[Math.floor(Math.random() * bossTypes.length)];
 bossHealth = bossConfig.health;
 bossName.textContent = bossConfig.name;
 
+
+class GamemodeAudio {
+  constructor() {
+    this.context = null;
+    this.master = null;
+    this.ambience = null;
+    this.growlTimer = 2.5 + Math.random() * 4;
+  }
+
+  async start() {
+    if (!this.context) {
+      this.context = new (window.AudioContext || window.webkitAudioContext)();
+      this.master = this.context.createGain();
+      this.master.gain.value = 0.5;
+      this.master.connect(this.context.destination);
+      this.ambience = this.context.createGain();
+      this.ambience.gain.value = 0.12;
+      this.ambience.connect(this.master);
+      this.startAmbience();
+    }
+    if (this.context.state === 'suspended') await this.context.resume();
+    root.dataset.audioState = 'ready';
+  }
+
+  startAmbience() {
+    [32, 43, 57].forEach((frequency, index) => {
+      const osc = this.context.createOscillator();
+      const gain = this.context.createGain();
+      osc.type = index === 1 ? 'sawtooth' : 'sine';
+      osc.frequency.value = frequency;
+      osc.detune.value = (index - 1) * 8;
+      gain.gain.value = 0.16 / (index + 1);
+      osc.connect(gain).connect(this.ambience);
+      osc.start();
+    });
+  }
+
+  pulse(frequency, duration, volume, type = 'sine') {
+    if (!this.context) return;
+    const now = this.context.currentTime;
+    const osc = this.context.createOscillator();
+    const gain = this.context.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(gain).connect(this.master);
+    osc.start(now);
+    osc.stop(now + duration + 0.03);
+  }
+
+  noise(duration, volume, highpass = 100) {
+    if (!this.context) return;
+    const count = Math.floor(this.context.sampleRate * duration);
+    const buffer = this.context.createBuffer(1, count, this.context.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < count; i += 1) data[i] = Math.random() * 2 - 1;
+    const source = this.context.createBufferSource();
+    const filter = this.context.createBiquadFilter();
+    const gain = this.context.createGain();
+    source.buffer = buffer;
+    filter.type = 'highpass';
+    filter.frequency.value = highpass;
+    gain.gain.setValueAtTime(volume, this.context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, this.context.currentTime + duration);
+    source.connect(filter).connect(gain).connect(this.master);
+    source.start();
+  }
+
+  weapon(kind) {
+    if (!this.context) return;
+    if (kind === 'sword') {
+      this.noise(0.18, 0.12, 450);
+      this.pulse(115, 0.18, 0.08, 'triangle');
+      return;
+    }
+    const minigun = kind === 'minigun';
+    this.pulse(minigun ? 78 + Math.random() * 18 : 102 + Math.random() * 12, minigun ? 0.07 : 0.11, minigun ? 0.11 : 0.16, 'square');
+    this.noise(minigun ? 0.055 : 0.09, minigun ? 0.075 : 0.11, 380);
+  }
+
+  allyShot() {
+    this.pulse(125 + Math.random() * 25, 0.07, 0.045, 'square');
+  }
+
+  bossRoar() {
+    if (!this.context) return;
+    this.pulse(bossConfig.shape === 'hound' ? 54 : 42, 0.8, 0.2, 'sawtooth');
+    this.noise(0.75, 0.1, 80);
+  }
+
+  playerHit() {
+    this.pulse(46, 0.32, 0.22, 'sawtooth');
+    this.noise(0.18, 0.16, 150);
+  }
+
+  end(won) {
+    if (won) {
+      [120, 160, 220].forEach((f, i) => setTimeout(() => this.pulse(f, 0.5, 0.12, 'sine'), i * 120));
+    } else {
+      this.pulse(52, 1.2, 0.23, 'sawtooth');
+      this.noise(0.7, 0.17, 100);
+    }
+  }
+
+  update(delta) {
+    if (!this.context || paused || ended) return;
+    this.growlTimer -= delta;
+    if (this.growlTimer <= 0) {
+      this.bossRoar();
+      this.growlTimer = 4 + Math.random() * 6;
+    }
+  }
+}
+
+const audio = new GamemodeAudio();
+
 function buildArena() {
   const floor = new THREE.Mesh(new THREE.CylinderGeometry(34, 34, 0.8, 64), new THREE.MeshStandardMaterial({ color: 0x211c22, roughness: 0.94 }));
   floor.position.y = -0.45; floor.receiveShadow = true; scene.add(floor);
@@ -178,7 +296,7 @@ function tracer(from, to, color = 0xffd37a) {
 }
 function attack() {
   if (!started || paused || ended || fireCooldown > 0) return;
-  const w = weapons[selectedWeapon]; fireCooldown = w.interval;
+  const w = weapons[selectedWeapon]; fireCooldown = w.interval; audio.weapon(selectedWeapon);
   if (selectedWeapon === 'sword') {
     swordSwing = 0.22; const d = camera.position.distanceTo(boss.group.position);
     camera.getWorldDirection(forward); const toBoss = boss.group.position.clone().sub(camera.position).setY(0).normalize();
@@ -215,7 +333,7 @@ function updateAllies(delta,t) {
       ally.userData.shootCooldown=0.48+Math.random()*0.34;
       const from=ally.position.clone().add(new THREE.Vector3(0.34,1.62,0));
       const to=boss.torso.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3((Math.random()-.5)*0.45,(Math.random()-.5)*0.5,(Math.random()-.5)*0.45));
-      allyTracer(from,to); bossHealth-=0.9; updateHud();
+      allyTracer(from,to); audio.allyShot(); bossHealth-=0.9; updateHud();
       if(bossHealth<=0){finish(true);return;}
     }
   }
@@ -227,7 +345,7 @@ function updateBoss(delta, t) {
   if (distance > 2.8) { toPlayer.normalize(); boss.group.position.addScaledVector(toPlayer, bossConfig.speed * delta); boss.group.rotation.y = Math.atan2(toPlayer.x, toPlayer.z); }
   const stride = t * 4.2; boss.arms[0].rotation.x = Math.sin(stride) * 0.5; boss.arms[1].rotation.x = -Math.sin(stride) * 0.5; boss.legs[0].rotation.x = -Math.sin(stride) * 0.35; boss.legs[1].rotation.x = Math.sin(stride) * 0.35; boss.head.rotation.z = Math.sin(t * 2.1) * 0.08; boss.aura.intensity = 3.6 + Math.sin(t * 9) * 0.8;
   bossHitCooldown -= delta;
-  if (distance < 3.1 && bossHitCooldown <= 0) { bossHitCooldown = 1.15; playerHealth -= bossConfig.shape === 'hound' ? 18 : 22; damageVignette.style.opacity = '0.8'; setTimeout(() => damageVignette.style.opacity = '0', 180); showDanger(`${bossConfig.name} HIT YOU.`, 1); updateHud(); if (playerHealth <= 0) finish(false); }
+  if (distance < 3.1 && bossHitCooldown <= 0) { bossHitCooldown = 1.15; playerHealth -= bossConfig.shape === 'hound' ? 18 : 22; damageVignette.style.opacity = '0.8'; setTimeout(() => damageVignette.style.opacity = '0', 180); showDanger(`${bossConfig.name} HIT YOU.`, 1); audio.playerHit(); updateHud(); if (playerHealth <= 0) finish(false); }
 }
 
 function updatePlayer(delta) {
@@ -237,14 +355,14 @@ function updatePlayer(delta) {
   const r = Math.hypot(camera.position.x, camera.position.z); if (r > 28.5) { camera.position.x *= 28.5 / r; camera.position.z *= 28.5 / r; }
 }
 
-function finish(won) { ended = true; paused = true; controls.unlock(); firing = false; endKicker.textContent = won ? 'ENTITY DESTROYED' : 'YOU WERE CLAIMED'; endTitle.textContent = won ? `${bossConfig.name} IS DEAD.` : `${bossConfig.name} KILLED YOU.`; endCopy.textContent = won ? `You survived with the ${weapons[selectedWeapon].name.toLowerCase()}.` : 'Choose another weapon. Or become better prey.'; endOverlay.classList.add('visible'); }
+function finish(won) { audio.end(won); ended = true; paused = true; controls.unlock(); firing = false; endKicker.textContent = won ? 'ENTITY DESTROYED' : 'YOU WERE CLAIMED'; endTitle.textContent = won ? `${bossConfig.name} IS DEAD.` : `${bossConfig.name} KILLED YOU.`; endCopy.textContent = won ? `You survived with the ${weapons[selectedWeapon].name.toLowerCase()}.` : 'Choose another weapon. Or become better prey.'; endOverlay.classList.add('visible'); }
 
-enterButton.addEventListener('click', () => controls.lock()); resumeButton.addEventListener('click', () => controls.lock()); restartPauseButton.addEventListener('click', () => location.reload()); restartButton.addEventListener('click', () => location.reload()); pauseButton.addEventListener('click', () => { if (started && !ended) controls.unlock(); });
+enterButton.addEventListener('click', () => { audio.start().catch(console.warn); controls.lock(); }); resumeButton.addEventListener('click', () => { audio.start().catch(console.warn); controls.lock(); }); restartPauseButton.addEventListener('click', () => location.reload()); restartButton.addEventListener('click', () => location.reload()); pauseButton.addEventListener('click', () => { if (started && !ended) controls.unlock(); });
 controls.addEventListener('lock', () => { const firstStart=!started; started = true; paused = false; startOverlay.classList.remove('visible'); pauseOverlay.classList.remove('visible'); if(firstStart&&bossConfig.shape==='hound')showDanger('AI FIRETEAM DEPLOYED · 4 RIFLEMEN',2.4); });
 controls.addEventListener('unlock', () => { if (started && !ended) { paused = true; pauseOverlay.classList.add('visible'); } });
 addEventListener('keydown', e => { keys.add(e.code); if (e.code === 'Space') { e.preventDefault(); firing = true; } }); addEventListener('keyup', e => { keys.delete(e.code); if (e.code === 'Space') firing = false; });
 addEventListener('mousedown', e => { if (e.button === 0) firing = true; }); addEventListener('mouseup', e => { if (e.button === 0) firing = false; });
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
-function animate() { requestAnimationFrame(animate); const delta = Math.min(clock.getDelta(), 0.05); const t = performance.now() / 1000; if (!paused && !ended) { fireCooldown -= delta; if (firing) attack(); updatePlayer(delta); updateAllies(delta,t); updateBoss(delta,t); if (swordSwing > 0) { swordSwing -= delta; weaponView.rotation.z = -0.8 * (swordSwing / 0.22); } else weaponView.rotation.z *= 0.8; if (dangerTimer > 0) { dangerTimer -= delta; if (dangerTimer <= 0) dangerMessage.classList.remove('visible'); } } renderer.render(scene,camera); }
+function animate() { requestAnimationFrame(animate); const delta = Math.min(clock.getDelta(), 0.05); const t = performance.now() / 1000; if (!paused && !ended) { fireCooldown -= delta; if (firing) attack(); updatePlayer(delta); updateAllies(delta,t); updateBoss(delta,t); audio.update(delta); if (swordSwing > 0) { swordSwing -= delta; weaponView.rotation.z = -0.8 * (swordSwing / 0.22); } else weaponView.rotation.z *= 0.8; if (dangerTimer > 0) { dangerTimer -= delta; if (dangerTimer <= 0) dangerMessage.classList.remove('visible'); } } renderer.render(scene,camera); }
 updateHud(); animate();

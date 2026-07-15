@@ -28,6 +28,110 @@ let started = false, paused = true, ended = false, feeding = false, feedTime = 0
 let maze, human, humanCell, humanTargetPath = [], humanPathTimer = 0;
 const forward = new THREE.Vector3(), right = new THREE.Vector3(), move = new THREE.Vector3();
 
+
+class MonsterModeAudio {
+  constructor() {
+    this.context = null;
+    this.master = null;
+    this.heartbeatTimer = 0;
+    this.footTimer = 0;
+    this.whisperTimer = 3 + Math.random() * 4;
+  }
+
+  async start() {
+    if (!this.context) {
+      this.context = new (window.AudioContext || window.webkitAudioContext)();
+      this.master = this.context.createGain();
+      this.master.gain.value = 0.52;
+      this.master.connect(this.context.destination);
+      this.startAmbience();
+    }
+    if (this.context.state === 'suspended') await this.context.resume();
+    root.dataset.audioState = 'ready';
+  }
+
+  startAmbience() {
+    const bus = this.context.createGain();
+    bus.gain.value = 0.055;
+    bus.connect(this.master);
+    [29, 41, 53].forEach((f, i) => {
+      const osc = this.context.createOscillator();
+      osc.type = i === 1 ? 'sawtooth' : 'sine';
+      osc.frequency.value = f;
+      osc.detune.value = (i - 1) * 10;
+      osc.connect(bus);
+      osc.start();
+    });
+  }
+
+  pulse(frequency, duration, volume, type = 'sine') {
+    if (!this.context) return;
+    const now = this.context.currentTime;
+    const osc = this.context.createOscillator();
+    const gain = this.context.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(gain).connect(this.master);
+    osc.start(now);
+    osc.stop(now + duration + 0.03);
+  }
+
+  noise(duration, volume, highpass = 80) {
+    if (!this.context) return;
+    const count = Math.floor(this.context.sampleRate * duration);
+    const buffer = this.context.createBuffer(1, count, this.context.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < count; i += 1) data[i] = Math.random() * 2 - 1;
+    const source = this.context.createBufferSource();
+    const filter = this.context.createBiquadFilter();
+    const gain = this.context.createGain();
+    source.buffer = buffer;
+    filter.type = 'highpass';
+    filter.frequency.value = highpass;
+    gain.gain.setValueAtTime(volume, this.context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, this.context.currentTime + duration);
+    source.connect(filter).connect(gain).connect(this.master);
+    source.start();
+  }
+
+  update(delta, distance, moving) {
+    if (!this.context || paused || feeding || ended) return;
+    this.heartbeatTimer -= delta;
+    this.footTimer -= delta;
+    this.whisperTimer -= delta;
+    const close = Math.max(0, Math.min(1, 1 - distance / 45));
+    if (this.heartbeatTimer <= 0 && close > 0.12) {
+      this.pulse(42, 0.12, 0.07 + close * 0.13, 'sine');
+      setTimeout(() => this.pulse(38, 0.11, 0.05 + close * 0.09, 'sine'), 115);
+      this.heartbeatTimer = 1.25 - close * 0.55;
+    }
+    if (moving && this.footTimer <= 0) {
+      this.pulse(38, 0.1, 0.12, 'triangle');
+      this.noise(0.08, 0.04, 120);
+      this.footTimer = 0.44;
+    }
+    if (this.whisperTimer <= 0) {
+      this.noise(0.7, 0.035, 750);
+      this.pulse(31, 0.8, 0.055, 'sawtooth');
+      this.whisperTimer = 5 + Math.random() * 7;
+    }
+  }
+
+  beginFeed() {
+    if (!this.context) return;
+    this.noise(0.8, 0.2, 500);
+    this.pulse(620, 0.5, 0.18, 'sawtooth');
+    setTimeout(() => { this.pulse(66, 0.38, 0.24, 'square'); this.noise(0.3, 0.22, 90); }, 520);
+    setTimeout(() => { this.pulse(49, 0.48, 0.26, 'sawtooth'); this.noise(0.4, 0.25, 80); }, 1150);
+    setTimeout(() => { this.pulse(36, 0.9, 0.22, 'sawtooth'); this.noise(0.7, 0.18, 65); }, 1900);
+  }
+}
+
+const audio = new MonsterModeAudio();
+
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function generateMaze(){const g=Array.from({length:GRID},()=>Array(GRID).fill(1));const stack=[{x:1,y:1}];g[1][1]=0;const dirs=[[2,0],[-2,0],[0,2],[0,-2]];while(stack.length){const c=stack[stack.length-1];const choices=shuffle([...dirs]).filter(([dx,dy])=>{const x=c.x+dx,y=c.y+dy;return x>0&&y>0&&x<GRID-1&&y<GRID-1&&g[y][x]===1;});if(!choices.length){stack.pop();continue;}const [dx,dy]=choices[0];g[c.y+dy/2][c.x+dx/2]=0;g[c.y+dy][c.x+dx]=0;stack.push({x:c.x+dx,y:c.y+dy});}return g;}
 function world(cell){return new THREE.Vector3((cell.x-HALF)*CELL,0,(cell.y-HALF)*CELL);}
@@ -55,7 +159,7 @@ function beginFeed(){
   feedStartCamera=camera.position.clone();feedStartHumanScale=human.scale.clone();
   pauseButton.disabled=true;document.body.classList.add('feeding-lock');
   jumpscare.setAttribute('aria-hidden','false');jumpscare.classList.remove('finished');jumpscare.classList.add('active');
-  pauseOverlay.classList.remove('visible');showDanger('YOU CAUGHT THEM.',1.2);
+  pauseOverlay.classList.remove('visible');showDanger('YOU CAUGHT THEM.',1.2); audio.beginFeed();
   if(controls.isLocked)controls.unlock();
 }
 function updateFeed(delta){
@@ -77,7 +181,7 @@ function blockFeedingInput(event){if(!feeding)return;event.preventDefault();even
 ['click','mousedown','mouseup','pointerdown','pointerup','contextmenu'].forEach(type=>window.addEventListener(type,blockFeedingInput,true));
 window.addEventListener('keydown',event=>{if(feeding){event.preventDefault();event.stopImmediatePropagation();}},true);
 
-enterButton.addEventListener('click',()=>controls.lock());resumeButton.addEventListener('click',()=>controls.lock());restartPauseButton.addEventListener('click',()=>location.reload());restartButton.addEventListener('click',()=>location.reload());pauseButton.addEventListener('click',()=>{if(started&&!ended&&!feeding)controls.unlock();});
+enterButton.addEventListener('click',()=>{audio.start().catch(console.warn);controls.lock();});resumeButton.addEventListener('click',()=>{audio.start().catch(console.warn);controls.lock();});restartPauseButton.addEventListener('click',()=>location.reload());restartButton.addEventListener('click',()=>location.reload());pauseButton.addEventListener('click',()=>{if(started&&!ended&&!feeding)controls.unlock();});
 controls.addEventListener('lock',()=>{started=true;paused=false;startOverlay.classList.remove('visible');pauseOverlay.classList.remove('visible');});controls.addEventListener('unlock',()=>{if(started&&!ended&&!feeding){paused=true;pauseOverlay.classList.add('visible');}});
 addEventListener('keydown',e=>{if(!feeding)keys.add(e.code);});addEventListener('keyup',e=>{if(!feeding)keys.delete(e.code);});addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
-function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.getDelta(),0.05),t=performance.now()/1000;if(feeding)updateFeed(delta);else if(!paused&&!ended){updatePlayer(delta);updateHuman(delta,t);updateScent();if(dangerTimer>0){dangerTimer-=delta;if(dangerTimer<=0)dangerMessage.classList.remove('visible');}}renderer.render(scene,camera);}animate();
+function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.getDelta(),0.05),t=performance.now()/1000;if(feeding)updateFeed(delta);else if(!paused&&!ended){updatePlayer(delta);updateHuman(delta,t);updateScent();audio.update(delta,Math.hypot(camera.position.x-human.position.x,camera.position.z-human.position.z),keys.has('KeyW')||keys.has('KeyA')||keys.has('KeyS')||keys.has('KeyD'));if(dangerTimer>0){dangerTimer-=delta;if(dangerTimer<=0)dangerMessage.classList.remove('visible');}}renderer.render(scene,camera);}animate();
