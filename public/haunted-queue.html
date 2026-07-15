@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#09080c" />
+    <title>Haunted Ascension — Looking for Players</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="haunted-queue-page">
+    <div class="grain" aria-hidden="true"></div>
+    <main class="haunted-queue-shell">
+      <section class="haunted-queue-card">
+        <p class="eyebrow">MULTIPLAYER · HAUNTED ASCENSION</p>
+        <h1>LOOKING FOR PLAYERS</h1>
+        <p id="queue-status-copy">Opening a three-player castle expedition…</p>
+
+        <div class="queue-timer-wrap" aria-label="Matchmaking countdown">
+          <div id="queue-timer" class="queue-timer">50</div>
+          <span>SECONDS UNTIL BOT FILL</span>
+        </div>
+
+        <div id="queue-slots" class="queue-slots" aria-label="Player slots">
+          <div class="queue-slot waiting"><strong>PLAYER 1</strong><span>Connecting…</span></div>
+          <div class="queue-slot waiting"><strong>PLAYER 2</strong><span>Searching…</span></div>
+          <div class="queue-slot waiting"><strong>PLAYER 3</strong><span>Searching…</span></div>
+        </div>
+
+        <p class="queue-note">Three human players start immediately. At zero, empty slots are filled by AI squadmates.</p>
+        <button id="quit-queue" class="secondary-button" type="button">QUIT QUEUE</button>
+      </section>
+    </main>
+    <script src="/haunted-queue.js" defer></script>
+  </body>
+</html>

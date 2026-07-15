@@ -1044,3 +1044,80 @@ body.feeding-lock *:not(.feed-jumpscare):not(.feed-jumpscare *) { pointer-events
 @media (max-width: 900px) {
   .gamemode-grid, .weapon-choice-grid { grid-template-columns: 1fr; }
 }
+
+/* Haunted Ascension multiplayer */
+.multiplayer-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 720px);
+  justify-content: center;
+}
+.multiplayer-card { min-height: 410px; }
+.haunted-ascension-card::after {
+  background:
+    radial-gradient(circle at 72% 12%, rgba(130, 25, 170, .23), transparent 44%),
+    radial-gradient(circle at 18% 92%, rgba(150, 12, 12, .18), transparent 45%);
+}
+.haunted-queue-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(83, 35, 99, .2), transparent 34%),
+    linear-gradient(160deg, #111019, #050507 58%, #0c0709);
+  color: #f3f0ed;
+}
+.haunted-queue-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  position: relative;
+  z-index: 2;
+}
+.haunted-queue-card {
+  width: min(760px, 96vw);
+  text-align: center;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(8, 8, 12, .86);
+  box-shadow: 0 30px 90px rgba(0,0,0,.55), inset 0 0 70px rgba(110,0,100,.07);
+  padding: clamp(26px, 5vw, 56px);
+}
+.haunted-queue-card h1 { margin: 8px 0 10px; font-size: clamp(2rem, 6vw, 4.8rem); letter-spacing: .08em; }
+.queue-timer-wrap { margin: 30px auto 24px; }
+.queue-timer { font-size: clamp(4rem, 14vw, 8rem); line-height: .9; font-weight: 900; color: #f1d9ff; text-shadow: 0 0 35px rgba(181,62,255,.35); }
+.queue-timer-wrap span { display: block; margin-top: 10px; letter-spacing: .16em; font-size: .78rem; opacity: .7; }
+.queue-slots { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin: 24px 0; }
+.queue-slot { border: 1px solid rgba(255,255,255,.12); padding: 16px 10px; background: rgba(255,255,255,.035); }
+.queue-slot strong, .queue-slot span { display: block; }
+.queue-slot strong { letter-spacing: .12em; font-size: .72rem; opacity: .55; }
+.queue-slot span { margin-top: 8px; font-weight: 800; }
+.queue-slot.filled { border-color: rgba(131,226,255,.48); box-shadow: inset 0 0 24px rgba(40,170,220,.08); }
+.queue-slot.waiting span { opacity: .45; }
+.queue-note { opacity: .66; font-size: .9rem; margin: 22px auto; }
+
+.haunted-multiplayer-page { margin: 0; overflow: hidden; background: #08090c; color: #fff; }
+.haunted-multiplayer-page canvas { display: block; }
+.haunted-progress-panel {
+  position: fixed; top: 18px; left: 50%; transform: translateX(-50%); z-index: 15;
+  width: min(520px, calc(100vw - 40px)); padding: 11px 14px;
+  background: rgba(8,8,12,.72); border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(10px);
+}
+.haunted-progress-heading { display: flex; justify-content: space-between; font-size: .75rem; letter-spacing: .14em; font-weight: 800; }
+.haunted-progress-track { height: 7px; margin-top: 8px; background: rgba(255,255,255,.1); overflow: hidden; }
+.haunted-progress-fill { height: 100%; width: 100%; transform: scaleX(0); transform-origin: left; background: linear-gradient(90deg, #91724a, #c7b18d, #f3efe5); transition: transform .18s linear; }
+.haunted-squad-panel { position: fixed; left: 18px; top: 18px; z-index: 15; min-width: 170px; padding: 12px; background: rgba(6,7,10,.72); border: 1px solid rgba(255,255,255,.14); }
+.haunted-squad-panel strong { display:block; font-size:.7rem; letter-spacing:.14em; opacity:.6; margin-bottom:7px; }
+.haunted-squad-member { display:flex; align-items:center; gap:8px; font-size:.82rem; margin-top:5px; }
+.haunted-squad-dot { width:8px; height:8px; border-radius:50%; background:#8de1ff; box-shadow:0 0 10px rgba(100,220,255,.5); }
+.haunted-danger-note { position:fixed; right:18px; top:18px; z-index:15; padding:12px 14px; max-width:260px; border:1px solid rgba(190,40,40,.28); background:rgba(24,5,7,.65); font-size:.76rem; letter-spacing:.08em; line-height:1.45; }
+.haunted-danger-note.lethal { border-color:rgba(255,30,30,.8); box-shadow:0 0 30px rgba(255,0,0,.2); color:#ffd6d6; }
+.haunted-jumpscare { position:fixed; inset:0; z-index:9999; display:none; background:#000; overflow:hidden; cursor:none; }
+.haunted-jumpscare.active { display:block; }
+.haunted-jumpscare-flash { position:absolute; inset:0; background:rgba(120,0,0,.16); animation: hauntedFlash .12s steps(2,end) infinite; }
+.haunted-jumpscare-name { position:absolute; bottom:7%; left:0; right:0; text-align:center; font-size:clamp(1.5rem,5vw,4rem); font-weight:900; letter-spacing:.18em; text-shadow:0 0 18px #f00; }
+@keyframes hauntedFlash { 50% { background:rgba(255,255,255,.1); filter:contrast(1.5); } }
+@media (max-width: 760px) {
+  .queue-slots { grid-template-columns: 1fr; }
+  .haunted-squad-panel { top:auto; bottom:16px; }
+  .haunted-danger-note { top:78px; max-width:190px; }
+}
+.haunted-jumpscare { background: rgba(0,0,0,.08); pointer-events:none; }
+.haunted-jumpscare.active { pointer-events: all; }

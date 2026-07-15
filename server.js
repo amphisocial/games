@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('node:path');
+const crypto = require('node:crypto');
 const express = require('express');
 const helmet = require('helmet');
 const cookieSession = require('cookie-session');
@@ -64,6 +65,101 @@ app.use(
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 const publicDir = path.join(__dirname, 'public');
 const threeRoot = path.resolve(path.dirname(require.resolve('three')), '..');
+
+
+// Haunted Ascension uses lightweight in-memory matchmaking. A PM2 restart clears
+// waiting rooms and active matches, which is appropriate for these short-lived sessions.
+const HAUNTED_QUEUE_MS = 50_000;
+const HAUNTED_MATCH_TTL_MS = 45 * 60 * 1000;
+const hauntedRooms = new Map();
+const hauntedUserRoom = new Map();
+const hauntedMatches = new Map();
+
+function hauntedId(prefix) {
+  return `${prefix}_${Date.now().toString(36)}_${crypto.randomBytes(5).toString('hex')}`;
+}
+
+function hauntedUserKey(req) {
+  return req.session?.user?.sub || '';
+}
+
+function cleanupHauntedSessions() {
+  const now = Date.now();
+  for (const [matchId, match] of hauntedMatches) {
+    if (now - match.createdAt <= HAUNTED_MATCH_TTL_MS) continue;
+    hauntedMatches.delete(matchId);
+    for (const player of match.players) {
+      if (!player.isBot && hauntedUserRoom.get(player.userSub) === match.roomId) hauntedUserRoom.delete(player.userSub);
+    }
+  }
+  for (const [roomId, room] of hauntedRooms) {
+    if (room.status === 'waiting' && now - room.createdAt > HAUNTED_QUEUE_MS + 5 * 60 * 1000) {
+      hauntedRooms.delete(roomId);
+      for (const human of room.humans) {
+        if (hauntedUserRoom.get(human.userSub) === roomId) hauntedUserRoom.delete(human.userSub);
+      }
+    }
+  }
+}
+
+function startHauntedRoom(room) {
+  if (!room || room.status !== 'waiting') return room?.matchId || null;
+  const matchId = hauntedId('haunted');
+  const botNames = ['Mara', 'Elias', 'Noah'];
+  const players = room.humans.map((human, index) => ({
+    id: `human_${index + 1}_${human.userSub.slice(-8)}`,
+    userSub: human.userSub,
+    name: human.name,
+    isBot: false,
+    slot: index,
+  }));
+  while (players.length < 3) {
+    const slot = players.length;
+    players.push({
+      id: `bot_${slot + 1}_${crypto.randomBytes(3).toString('hex')}`,
+      userSub: '',
+      name: botNames[slot] || `Bot ${slot + 1}`,
+      isBot: true,
+      slot,
+    });
+  }
+  const match = {
+    id: matchId,
+    roomId: room.id,
+    seed: crypto.randomBytes(4).readUInt32LE(0),
+    createdAt: Date.now(),
+    startedAt: Date.now(),
+    players,
+    states: new Map(),
+  };
+  room.status = 'playing';
+  room.matchId = matchId;
+  hauntedMatches.set(matchId, match);
+  return matchId;
+}
+
+function getHauntedRoomForUser(userSub) {
+  const roomId = hauntedUserRoom.get(userSub);
+  if (!roomId) return null;
+  const room = hauntedRooms.get(roomId);
+  if (!room) hauntedUserRoom.delete(userSub);
+  return room || null;
+}
+
+function hauntedRoomStatus(room) {
+  if (!room) return null;
+  if (room.status === 'waiting' && Date.now() - room.createdAt >= HAUNTED_QUEUE_MS) startHauntedRoom(room);
+  const remainingMs = room.status === 'waiting' ? Math.max(0, HAUNTED_QUEUE_MS - (Date.now() - room.createdAt)) : 0;
+  return {
+    roomId: room.id,
+    status: room.status,
+    humanCount: room.humans.length,
+    maxPlayers: 3,
+    remainingMs,
+    matchId: room.matchId || '',
+    humans: room.humans.map((human) => ({ name: human.name })),
+  };
+}
 
 function requireAuth(req, res, next) {
   if (req.session?.user) {
@@ -183,6 +279,114 @@ app.get('/mode/be-the-monster', requireAuth, (_req, res) => res.sendFile(path.jo
 app.get('/be-the-monster.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'be-the-monster.js')));
 app.get('/mode/dark-onslaught', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'dark-onslaught.html')));
 app.get('/dark-onslaught.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'dark-onslaught.js')));
+
+app.get('/mode/haunted-ascension/queue', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'haunted-queue.html')));
+app.get('/haunted-queue.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'haunted-queue.js')));
+app.get('/mode/haunted-ascension/play', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'haunted-ascension.html')));
+app.get('/haunted-ascension.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'haunted-ascension.js')));
+
+app.post('/api/haunted-ascension/queue/join', requireAuth, (req, res) => {
+  cleanupHauntedSessions();
+  const userSub = hauntedUserKey(req);
+  let room = getHauntedRoomForUser(userSub);
+  if (room) return res.json(hauntedRoomStatus(room));
+
+  room = [...hauntedRooms.values()]
+    .filter((candidate) => candidate.status === 'waiting' && candidate.humans.length < 3)
+    .sort((a, b) => a.createdAt - b.createdAt)[0];
+
+  if (!room) {
+    room = {
+      id: hauntedId('room'),
+      createdAt: Date.now(),
+      status: 'waiting',
+      matchId: '',
+      humans: [],
+    };
+    hauntedRooms.set(room.id, room);
+  }
+
+  room.humans.push({
+    userSub,
+    name: req.session.user.givenName || req.session.user.name || 'Player',
+    joinedAt: Date.now(),
+  });
+  hauntedUserRoom.set(userSub, room.id);
+  if (room.humans.length >= 3) startHauntedRoom(room);
+  return res.json(hauntedRoomStatus(room));
+});
+
+app.get('/api/haunted-ascension/queue/status', requireAuth, (req, res) => {
+  cleanupHauntedSessions();
+  const room = getHauntedRoomForUser(hauntedUserKey(req));
+  if (!room) return res.status(404).json({ error: 'You are not currently queued.' });
+  return res.json(hauntedRoomStatus(room));
+});
+
+app.post('/api/haunted-ascension/queue/quit', requireAuth, (req, res) => {
+  const userSub = hauntedUserKey(req);
+  const room = getHauntedRoomForUser(userSub);
+  if (!room) return res.json({ ok: true });
+  if (room.status !== 'waiting') return res.status(409).json({ error: 'The match has already started.' });
+  room.humans = room.humans.filter((human) => human.userSub !== userSub);
+  hauntedUserRoom.delete(userSub);
+  if (room.humans.length === 0) hauntedRooms.delete(room.id);
+  return res.json({ ok: true });
+});
+
+app.get('/api/haunted-ascension/match', requireAuth, (req, res) => {
+  cleanupHauntedSessions();
+  const room = getHauntedRoomForUser(hauntedUserKey(req));
+  if (!room || room.status !== 'playing' || !room.matchId) return res.status(404).json({ error: 'No active Haunted Ascension match.' });
+  const match = hauntedMatches.get(room.matchId);
+  if (!match) return res.status(404).json({ error: 'Match expired.' });
+  const self = match.players.find((player) => player.userSub === hauntedUserKey(req));
+  return res.json({
+    matchId: match.id,
+    seed: match.seed,
+    startedAt: match.startedAt,
+    selfId: self?.id || '',
+    players: match.players.map(({ id, name, isBot, slot }) => ({ id, name, isBot, slot })),
+  });
+});
+
+app.post('/api/haunted-ascension/match/leave', requireAuth, (req, res) => {
+  const userSub = hauntedUserKey(req);
+  const room = getHauntedRoomForUser(userSub);
+  if (room) {
+    if (room.matchId) {
+      const match = hauntedMatches.get(room.matchId);
+      const player = match?.players.find((candidate) => candidate.userSub === userSub);
+      if (player) match.states.delete(player.id);
+    }
+    hauntedUserRoom.delete(userSub);
+  }
+  return res.json({ ok: true });
+});
+
+app.post('/api/haunted-ascension/state', requireAuth, (req, res) => {
+  const room = getHauntedRoomForUser(hauntedUserKey(req));
+  if (!room || room.status !== 'playing' || !room.matchId) return res.status(404).json({ error: 'No active match.' });
+  const match = hauntedMatches.get(room.matchId);
+  if (!match) return res.status(404).json({ error: 'Match expired.' });
+  const self = match.players.find((player) => player.userSub === hauntedUserKey(req));
+  if (!self) return res.status(403).json({ error: 'Not a member of this match.' });
+  const values = ['x', 'y', 'z', 'yaw', 'progress'];
+  const state = {};
+  for (const key of values) {
+    const value = Number(req.body?.[key]);
+    if (!Number.isFinite(value)) return res.status(400).json({ error: `Invalid ${key}.` });
+    state[key] = value;
+  }
+  state.progress = Math.max(0, Math.min(1, state.progress));
+  state.finished = Boolean(req.body?.finished);
+  state.updatedAt = Date.now();
+  match.states.set(self.id, state);
+  const states = {};
+  for (const [playerId, playerState] of match.states) states[playerId] = playerState;
+  return res.json({ states, serverTime: Date.now() });
+});
+
 // Backward-compatible route for older bookmarks/builds.
 app.get('/game.js', requireAuth, (_req, res) => res.sendFile(path.join(publicDir, 'level1.js')));
 

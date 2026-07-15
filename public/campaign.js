@@ -23,18 +23,25 @@ logoutButton.addEventListener('click', async () => {
 
 const levelsTab = document.getElementById('levels-tab');
 const gamemodesTab = document.getElementById('gamemodes-tab');
+const multiplayerTab = document.getElementById('multiplayer-tab');
 const levelsPanel = document.getElementById('levels-panel');
 const gamemodesPanel = document.getElementById('gamemodes-panel');
+const multiplayerPanel = document.getElementById('multiplayer-panel');
 
 function setContentTab(tab) {
-  const showLevels = tab === 'levels';
-  levelsTab.classList.toggle('active', showLevels);
-  gamemodesTab.classList.toggle('active', !showLevels);
-  levelsTab.setAttribute('aria-selected', String(showLevels));
-  gamemodesTab.setAttribute('aria-selected', String(!showLevels));
-  levelsPanel.classList.toggle('hidden', !showLevels);
-  gamemodesPanel.classList.toggle('hidden', showLevels);
+  const tabs = {
+    levels: [levelsTab, levelsPanel],
+    gamemodes: [gamemodesTab, gamemodesPanel],
+    multiplayer: [multiplayerTab, multiplayerPanel],
+  };
+  Object.entries(tabs).forEach(([name, [button, panel]]) => {
+    const active = name === tab;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', String(active));
+    panel.classList.toggle('hidden', !active);
+  });
 }
 
 levelsTab.addEventListener('click', () => setContentTab('levels'));
 gamemodesTab.addEventListener('click', () => setContentTab('gamemodes'));
+multiplayerTab.addEventListener('click', () => setContentTab('multiplayer'));

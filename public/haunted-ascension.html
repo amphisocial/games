@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0a090d" />
+    <title>Haunted Ascension — Multiplayer</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/vendor/three/three.module.js",
+          "three/addons/": "/vendor/three/addons/"
+        }
+      }
+    </script>
+  </head>
+  <body class="haunted-multiplayer-page">
+    <div id="game-root" aria-label="Haunted Ascension multiplayer castle"></div>
+    <div class="grain game-grain" aria-hidden="true"></div>
+    <div id="damage-vignette" aria-hidden="true"></div>
+
+    <div class="haunted-progress-panel">
+      <div class="haunted-progress-heading"><span>ASCENSION TO THE EXIT</span><span id="haunted-progress-percent">0%</span></div>
+      <div class="haunted-progress-track"><div id="haunted-progress-fill" class="haunted-progress-fill"></div></div>
+    </div>
+
+    <div id="haunted-squad" class="haunted-squad-panel"><strong>SQUAD · 3</strong></div>
+    <div id="haunted-danger" class="haunted-danger-note">THEY CAN FOLLOW YOU. THEY CANNOT TAKE YOU UNTIL 80%.</div>
+    <div id="crosshair" class="crosshair" aria-hidden="true"><span></span><span></span></div>
+    <div id="danger-message" class="danger-message" role="status"></div>
+
+    <section id="start-overlay" class="overlay visible">
+      <div class="overlay-panel">
+        <p class="eyebrow">MULTIPLAYER · HAUNTED ASCENSION</p>
+        <h1>FIVE THINGS LIVE IN THIS CASTLE.</h1>
+        <p>Your squad shares the same castle. Reach the ascension gate. The five humanoid horrors chase immediately, but they cannot claim you until you cross 80% of the route.</p>
+        <div class="overlay-controls">
+          <span><kbd>W A S D</kbd> Move</span>
+          <span><kbd>Mouse</kbd> Look</span>
+          <span><kbd>Shift</kbd> Sprint</span>
+          <span><kbd>Esc</kbd> Pause</span>
+        </div>
+        <button id="enter-button" class="primary-button" type="button">ENTER THE CASTLE</button>
+        <a class="text-button campaign-link" href="/game">Leave match</a>
+      </div>
+    </section>
+
+    <section id="pause-overlay" class="overlay">
+      <div class="overlay-panel compact">
+        <p class="eyebrow">GAME PAUSED</p>
+        <h2>THE CASTLE IS STILL MOVING.</h2>
+        <button id="resume-button" class="primary-button" type="button">RESUME</button>
+        <a class="text-button campaign-link" href="/game">Leave match</a>
+      </div>
+    </section>
+
+    <div id="haunted-jumpscare" class="haunted-jumpscare" aria-hidden="true">
+      <div class="haunted-jumpscare-flash"></div>
+      <div id="haunted-jumpscare-name" class="haunted-jumpscare-name"></div>
+    </div>
+
+    <section id="end-overlay" class="overlay" aria-live="assertive">
+      <div class="overlay-panel end-panel">
+        <p id="end-kicker" class="eyebrow"></p>
+        <h2 id="end-title"></h2>
+        <p id="end-copy"></p>
+        <button id="restart-button" class="primary-button" type="button">PLAY AGAIN</button>
+        <a class="text-button campaign-link" href="/game">RETURN TO MENU</a>
+      </div>
+    </section>
+
+    <script type="module" src="/haunted-ascension.js"></script>
+  </body>
+</html>
